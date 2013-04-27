@@ -20,7 +20,7 @@ var fileUtil = require('./fileUtil'), ETag = fileUtil.ETag;
 var resource = require('./resource');
 var USER_WRITE_FLAG = parseInt('0200', 8);
 var USER_EXECUTE_FLAG = parseInt('0100', 8);
-
+var ph = require('path');
 
 /*
  *
@@ -30,9 +30,14 @@ var USER_EXECUTE_FLAG = parseInt('0100', 8);
  
 function doJob(handler, rest, req, res, workspaceDir) {
 	//TODO handle invalid requests
+	//console.log(handler);
+    //console.log(res);
+    console.log('doJob:');
+    console.log(rest);
 	var methodName = rest[0] === '/' ? rest.split('/')[1] : rest.split('/')[0];
 	var method = handler[methodName];
 	var queryData = "";
+
 	req.on('data', function(data) {
 		queryData += data;
 	});
@@ -47,8 +52,11 @@ function doJob(handler, rest, req, res, workspaceDir) {
 }
 
 module.exports = function(options) {
-	console.log("OPT: " + options);
-	console.log("OPT: " + url);
+	console.log("OPT: " );
+    console.log(options);
+	console.log("OPT: ");
+    //console.log(opt);
+    
 	var fileRoot = options.root;
 	var workspaceDir = options.workspaceDir;
 	/*
@@ -59,6 +67,7 @@ module.exports = function(options) {
 	.use(resource(fileRoot, {
 		GET: function(req, res, next, rest) {
 			var handler = getHandlers;
+            console.log(rest);
 			doJob(handler, rest, req, res, workspaceDir);
 		},
 
@@ -76,7 +85,15 @@ module.exports = function(options) {
 			var handler = putHandlers;
 			doJob(handler, rest, req, res, workspaceDir);
 		},
-
+        OPTIONS: function(req, res, next, rest) {
+            //var handler = putHandlers;
+            //doJob(handler, rest, req, res, workspaceDir);
+            console.log('helol!');
+            var handler = getHandlers;
+            console.log("GET:");
+            console.log(rest);
+            doJob(handler, rest, req, res, workspaceDir);
+        },
 	}));
 };
 
@@ -125,97 +142,102 @@ deleteHandlers = {
 	tag : deleteTag
 };
 
+//TODO : commit : /gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/"
+// /gitapi/commit/refs%252Fheads%252Fdev/file/msabat/test/"
 function getBranch(res, rest, dataJson, workspaceDir) {
-	
+/*
+HTTP/1.1 200 OK
+
+{
+ "Children": [ 
+   {
+     "CloneLocation": "http://localhost:8080/gitapi/clone/file/dg/",
+     "CommitLocation": "http://localhost:8080/gitapi/commit/master/file/dg/",
+     "Current": true,
+     "HeadLocation": "http://localhost:8080/gitapi/commit/HEAD/file/dg/",
+     "Location": "http://localhost:8080/gitapi/branch/master/file/dg/",
+     "Name": "master",
+     "RemoteLocation": "http://localhost:8080/gitapi/remote/origin/master/file/dg/",
+     "Type": "Branch"
+   },
+   {
+     "CloneLocation": "http://localhost:8080/gitapi/clone/file/dg/",
+     "CommitLocation": "http://localhost:8080/gitapi/commit/dev/file/dg/",
+     "Current": false,
+     "HeadLocation": "http://localhost:8080/gitapi/commit/HEAD/file/dg/",
+     "Location": "http://localhost:8080/gitapi/branch/dev/file/dg/",
+     "Name": "dev",
+     "RemoteLocation": "http://localhost:8080/gitapi/remote/origin/dev/file/dg/",
+     "Type": "Branch"
+   }
+ ]}
+*/
+    //TODO reponame with space (%20
+    var splittedRest = rest.split('/');
+    var repo = splittedRest[splittedRest.length - 2];
+    var path = ph.join(workspaceDir, repo);
+    
+        var entries = 
+              [ 
+            {
+                'CloneLocation': 'http://localhost:8080/gitapi/clone/file/' + repo + '/',
+                'CommitLocation': 'http://localhost:8080/gitapi/commit/master/file/' + repo + '/', //TODO
+                'Current': true,
+                'HeadLocation': 'http://localhost:8080/gitapi/commit/HEAD/file/' + repo + '/',
+                'Location': 'http://localhost:8080/gitapi/branch/master/file/' + repo + '/',
+                'Name': 'master',
+                'RemoteLocation': 'http://localhost:8080/gitapi/remote/origin/master/file/'+ repo + '/', //TODO
+                'Type': 'Branch'
+            },
+            ]
+
+        //var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
+        var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
+        write(200, res, null, json);
 }
 
 function getClone(res, rest, dataJson, workspaceDir) {
-	//GET /gitapi/clone/workspace/P/ on wiki, but in fact - it's different
-	//rest == clone/workspace/orionode
-	var repositories = [];
+    function sendResponse(repositories)
+    {
+        var entries = [ ];
+        repositories.forEach(function (repository) {
+            var entry = {
+                'BranchLocation': '/gitapi/branch/file/' + repository + '/', 
+                'CommitLocation': '/gitapi/commit/file/' + repository + '/', 
+                'ConfigLocation': '/gitapi/config/clone/file/' + repository + '/', 
+                'ContentLocation': '/file/' + repository + '/', 
+                'DiffLocation': '/gitapi/diff/Default/file/' + repository + '/', 
+                'HeadLocation': '/gitapi/commit/HEAD/file/' + repository + '/', 
+                'IndexLocation': '/gitapi/index/file/' + repository + '/', 
+                'Location': '/gitapi/clone/file/' + repository + '/', 
+                'Name': repository,
+                'RemoteLocation': '/gitapi/remote/file/' + repository + '/', 
+                'StatusLocation': '/gitapi/status/file/' + repository + '/', 
+                'TagLocation': '/gitapi/tag/file/' + repository + '/', 
+                'Type': 'Clone' 
+            }
+            entries.push(entry);
+        });
 
-	function sendResponse()
-	{
-		var entries = [ ];
-		repositories.forEach(function (repository) {
-			//TODO
-			var entry = {
-				"BranchLocation": "/gitapi/branch/file/ilovegame/Hello%20World/", 
-				"CommitLocation": "/gitapi/commit/file/ilovegame/Hello%20World/", 
-				"ConfigLocation": "/gitapi/config/clone/file/ilovegame/Hello%20World/", 
-				"ContentLocation": "/file/ilovegame/Hello%20World/", 
-				"DiffLocation": "/gitapi/diff/Default/file/ilovegame/Hello%20World/", 
-				"HeadLocation": "/gitapi/commit/HEAD/file/ilovegame/Hello%20World/", 
-				"IndexLocation": "/gitapi/index/file/ilovegame/Hello%20World/", 
-				"Location": "/gitapi/clone/file/ilovegame/Hello%20World/", 
-				"Name": repository,
-				"RemoteLocation": "/gitapi/remote/file/ilovegame/Hello%20World/", 
-				"StatusLocation": "/gitapi/status/file/ilovegame/Hello%20World/", 
-				"TagLocation": "/gitapi/tag/file/ilovegame/Hello%20World/", 
-				"Type": "Clone" 
-			}
-			entries.push(entry);
-		});
+        var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
+        write(200, res, null, json);
+    }
 
-		var json = JSON.stringify( { "Children" : entries, "Type": "Clone" } );
-		write(200, res, null, json);
-	}
-
-	fs.readdir(workspaceDir, function (err, list)
-	{
-		if (err)
-		{
-			writeError(500, res, 'Error occured ');
-		} else {
-			var filesCount = list.length;
-			var filesVerified = 0;
-			if (filesCount === 0)
-			{
-				//var json = JSON.stringify( { "Children" : entries, "Type": "Clone" } );
-				write(200, res, null, { "Children" : [ ], "Type": "Clone" });
-			}
-			else
-				
-			{
-				list.forEach(function (file) {
-					var path = workspaceDir + "/" + file;
-					fs.stat(path, function (err, stat) {
-						if (err)
-						{
-							writeError(500, res, 'Error occured ');
-						}
-						else if (stat.isDirectory())
-						{
-							var gitDir = path+'/.git';
-							fs.exists(gitDir, function (exists) {
-								if (exists)
-								{
-									repositories.push(file);	
-								}
-								filesVerified++;
-								if (filesVerified === filesCount)
-								{
-									sendResponse();
-								}
-							});
-						}
-						else 
-						{
-							filesVerified++;
-							if (filesVerified === filesCount)
-							{
-								sendResponse();
-							}
-						}
-					});
-				});
-			}
-		}		
-	});
+    git.repository.getRepositories(workspaceDir, function(err, repos) {
+        if (err)
+        {
+            write(500, res, 'Cannot get repostory list');
+        }
+        else
+        {
+            sendResponse(repos);
+        }
+    });
 }
 
 function getCommit(res, rest, dataJson, workspaceDir) {
-	
+
+
 }
 
 function getConfig(res, rest, dataJson, workspaceDir) {
@@ -233,8 +255,111 @@ function getRemote(res, rest, dataJson, workspaceDir) {
 	
 }
 
+
+//TODO not finished
 function getStatus(res, rest, dataJson, workspaceDir) {
-	
+    //TODO reponame with space (%20
+    var splittedRest = rest.split('/');
+    var repo = splittedRest[splittedRest.length - 2];
+    var path = ph.join(workspaceDir, repo);
+
+    git.gitStatusCommand.gitStatus(path, function(err, result, treeInfo, graph) {
+        if(err) {
+            write(500, res, 'Cannot get repostory status');
+        } else {
+/*
+Added: []
+Changed: []
+CloneLocation: "/gitapi/clone/file/msabat/test2/"
+CommitLocation: "/gitapi/commit/HEAD/file/msabat/test2/"
+Conflicting: []
+IndexLocation: "/gitapi/index/file/msabat/test2/"
+Location: "/gitapi/status/file/msabat/test2/"
+Missing: []
+Modified: []
+Removed: []
+RepositoryState: "SAFE"
+Type: "Status"
+Untracked: []
+*/
+            var entry = {
+                // 'BranchLocation': '/gitapi/branch/file/' + repository + '/', 
+                'Added': [],
+                'Changed': [],
+                'CloneLocation': "/gitapi/clone/file/msabat/test2/",
+                'CommitLocation': '/gitapi/commit/HEAD/file/E/',
+                'Conflicting': [],
+                'IndexLocation': '/gitapi/index/file/E/',
+                'Location': "/gitapi/status/file/msabat/test2/",
+                'Missing': [],
+                'Modified': [],
+                'Removed': [],
+                'RepositoryState': "SAFE",
+                'Type': "Status",
+                'Untracked': []
+            }
+            /*
+                'Modified': [{
+                'Git': {
+                    'CommitLocation': '/gitapi/commit/HEAD/file/E/a.txt',
+                    'DiffLocation': '/gitapi/diff/Default/file/E/a.txt',
+                    'IndexLocation': '/gitapi/index/file/E/a.txt'
+                },
+                'Location': '/gitapi/file/E/a.txt',
+                'Name': 'a.txt',
+                'Path': 'a.txt'
+                }],
+                */
+            console.log(result.modified);
+            console.log(result.untracked);
+            console.log(result.added);
+            console.log(result.missing);
+            console.log(result.changed);
+            console.log(result.removed);
+            console.log(treeInfo);
+            console.log(graph);
+            // var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
+            var json = JSON.stringify( entry
+            );
+            write(200, res, null, json);
+        }
+    });
+/*
+Added: []
+Changed: []
+CloneLocation: "/gitapi/clone/file/msabat/test2/"
+CommitLocation: "/gitapi/commit/HEAD/file/msabat/test2/"
+Conflicting: []
+IndexLocation: "/gitapi/index/file/msabat/test2/"
+Location: "/gitapi/status/file/msabat/test2/"
+Missing: []
+Modified: []
+Removed: []
+RepositoryState: "SAFE"
+Type: "Status"
+Untracked: []
+
+{
+ "Added": [],
+ "Changed": [],
+ "CommitLocation": "http://localhost:8080/git/commit/HEAD/file/E/",
+ "Conflicting": [],
+ "IndexLocation": "http://localhost:8080/git/index/file/E/",
+ "Missing": [],
+ "Modified": [{
+   "Git": {
+     "CommitLocation": "http://localhost:8080/git/commit/HEAD/file/E/a.txt",
+     "DiffLocation": "http://localhost:8080/git/diff/Default/file/E/a.txt",
+     "IndexLocation": "http://localhost:8080/git/index/file/E/a.txt"
+   },
+   "Location": "http://localhost:8080/file/E/a.txt",
+   "Name": "a.txt",
+   "Path": "a.txt"
+ }],
+ "Removed": [],
+ "Untracked": []
+ }
+*/
 }
 
 function getTag(res, rest, dataJson, workspaceDir) {
@@ -246,21 +371,33 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 	
 }
 
+// TODO mk dir orionode/.workspace !!!
 function postClone(res, rest, dataJson, workspaceDir) {
-	//TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
-	var dir = workspaceDir + '/' + dataJson['Name'];
-	fs.mkdir(dir, function (err) {
-		if (err)
-		{
-			writeError(500, res, "Error occured");
-		}
-		else {
-			git.git(dir);
-			//TODO location with url
-			var resJson = JSON.stringify({ "Location" :  rest + dataJson['Name'] });
-			write(201, res, null, resJson)
-		}
-	});
+    //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
+    var dir = ph.join(workspaceDir, dataJson['Name']);
+
+    fs.mkdir(dir, function (err) {
+        if (err)
+        {
+            console.log(err);
+            writeError(500, res, 'Error occured. Cannot create ' + dataJson['Name'] + ' dir');
+        }
+        else {
+            git.gitInitCommand.init (dir, function(err) {
+                if (err)
+                {
+                    console.log(err);
+                    writeError(500, res, 'Error occured. Cannot create .git dir');
+                }
+                else {
+                    var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
+                    write(201, res, null, resJson)
+                }
+            })
+        }
+    });
+	
+    
 }
 
 function postCommit(res, rest, dataJson, workspaceDir) {
@@ -330,7 +467,21 @@ function deleteBranch(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteClone(res, rest, dataJson, workspaceDir) {
-	
+    //TODO reponame with space (%20
+    var splittedRest = rest.split('/');
+    var repo = splittedRest[splittedRest.length - 2];
+    var path = ph.join(workspaceDir, repo);
+
+    git.repository.removeRepository(path, function(err) {
+        if (err)
+        {
+            writeError(500, res, 'Cannot remove repository');
+        }
+        else
+        {
+            write(200, res, null, null);
+        }
+    });
 }
 
 function deleteCommit(res, rest, dataJson, workspaceDir) {
