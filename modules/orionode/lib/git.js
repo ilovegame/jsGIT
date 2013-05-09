@@ -142,58 +142,36 @@ deleteHandlers = {
 	tag : deleteTag
 };
 
-//TODO : commit : /gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/"
-// /gitapi/commit/refs%252Fheads%252Fdev/file/msabat/test/"
 function getBranch(res, rest, dataJson, workspaceDir) {
-/*
-HTTP/1.1 200 OK
+        var repoName = rest.split('/');
+        repoName = repoName[repoName.length - 2];
+        var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+        git.gitBranchCommand.getBranchesMetadata(pathToRepo, function (err, branchesList) {
+            if (err) {
+                writeError(500, res, err);
+            }
+            
+            var branchesInfo = new Array();
+            for (var branchName in branchesList) {
+                branchesInfo.push(
+                    {
+                        "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+                        "CommitLocation": "/gitapi/commit/" + branchName + "/file/" + repoName + "/",
+                        "Current": branchesList[branchName]['active'],
+                        "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                        "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+                        "Name": branchName,
+                        "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                        "Type": "Branch"
+                    }
+                );
+            }
+            var dataToResponse = {
+                "Children": branchesInfo
+            }
 
-{
- "Children": [ 
-   {
-     "CloneLocation": "http://localhost:8080/gitapi/clone/file/dg/",
-     "CommitLocation": "http://localhost:8080/gitapi/commit/master/file/dg/",
-     "Current": true,
-     "HeadLocation": "http://localhost:8080/gitapi/commit/HEAD/file/dg/",
-     "Location": "http://localhost:8080/gitapi/branch/master/file/dg/",
-     "Name": "master",
-     "RemoteLocation": "http://localhost:8080/gitapi/remote/origin/master/file/dg/",
-     "Type": "Branch"
-   },
-   {
-     "CloneLocation": "http://localhost:8080/gitapi/clone/file/dg/",
-     "CommitLocation": "http://localhost:8080/gitapi/commit/dev/file/dg/",
-     "Current": false,
-     "HeadLocation": "http://localhost:8080/gitapi/commit/HEAD/file/dg/",
-     "Location": "http://localhost:8080/gitapi/branch/dev/file/dg/",
-     "Name": "dev",
-     "RemoteLocation": "http://localhost:8080/gitapi/remote/origin/dev/file/dg/",
-     "Type": "Branch"
-   }
- ]}
-*/
-    //TODO reponame with space (%20
-    var splittedRest = rest.split('/');
-    var repo = splittedRest[splittedRest.length - 2];
-    var path = ph.join(workspaceDir, repo);
-    
-        var entries = 
-              [ 
-            {
-                'CloneLocation': 'http://localhost:8080/gitapi/clone/file/' + repo + '/',
-                'CommitLocation': 'http://localhost:8080/gitapi/commit/master/file/' + repo + '/', //TODO
-                'Current': true,
-                'HeadLocation': 'http://localhost:8080/gitapi/commit/HEAD/file/' + repo + '/',
-                'Location': 'http://localhost:8080/gitapi/branch/master/file/' + repo + '/',
-                'Name': 'master',
-                'RemoteLocation': 'http://localhost:8080/gitapi/remote/origin/master/file/'+ repo + '/', //TODO
-                'Type': 'Branch'
-            },
-            ]
-
-        //var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
-        var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
-        write(200, res, null, json);
+            write(200, res, null, JSON.stringify(dataToResponse));
+        });
 }
 
 function getClone(res, rest, dataJson, workspaceDir) {
