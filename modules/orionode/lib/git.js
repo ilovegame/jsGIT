@@ -262,10 +262,6 @@ function getIndex(res, rest, dataJson, workspaceDir) {
 
 
 function getRemote(res, rest, dataJson, workspaceDir) {
-    /*{"Children": [{
- "Location": "http://localhost:8080/git/remote/origin/file/E/",
- "Name": "origin"
- }]}*/
     var repoName = rest.split('/');
     repoName = repoName[repoName.length - 2];
     var pathToRepo = workspaceDir + '/' + repoName + '/.git';
@@ -409,7 +405,32 @@ Untracked: []
 }
 
 function getTag(res, rest, dataJson, workspaceDir) {
-	
+    var repoName = rest.split('/');
+    repoName = repoName[repoName.length - 2];
+    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+
+    git.gitTagCommand.getTags(pathToRepo, function(err, tags) {
+        if (err) {
+            writeError(500, res, err);
+            return;
+        }
+        var dataToResponse;
+        var tagsToResponse = new Array();
+        for (var tagIndex in tags) {
+            tagsToResponse.push(
+                {
+                    "FullName": "refs/tags/" + tags[tagIndex],
+                    "Name": tags[tagIndex]
+                }
+            );
+        }
+        dataToResponse = {
+            "Children": tagsToResponse
+        }
+
+        write(200, res, null, JSON.stringify(dataToResponse));
+        return;
+    });
 }
 
 
@@ -434,6 +455,7 @@ function postBranch(res, rest, dataJson, workspaceDir) {
             "Type": "Branch"
         }
         write(201, res, null, JSON.stringify(dataToResponse));
+        return;
     });
 }
 
