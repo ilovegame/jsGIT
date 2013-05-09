@@ -258,8 +258,43 @@ function getIndex(res, rest, dataJson, workspaceDir) {
 	
 }
 
-function getRemote(res, rest, dataJson, workspaceDir) {
 
+function getRemote(res, rest, dataJson, workspaceDir) {
+    /*{"Children": [{
+ "Location": "http://localhost:8080/git/remote/origin/file/E/",
+ "Name": "origin"
+ }]}*/
+    var repoName = rest.split('/');
+    repoName = repoName[repoName.length - 2];
+    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+    var restPathSize = rest.split("/").length;
+    var dataToResponse;
+
+    if (restPathSize == 4) {
+        git.gitRemoteCommand.getRemotesNames(pathToRepo, function(err, remotesNames) {
+            if (err) {
+                write(500, res, err);
+            }
+            var remotesNamesToResponse = new Array();
+            for (var name in remotesNames) {
+                remotesNamesToResponse.push(
+                    {
+                        "Location": "/gitapi/remote/" + name + "/file/" + repoName + "/",
+                        "Name": repoName
+                    }
+                );
+            }
+
+            dataToResponse = {
+                "Children": remotesNamesToResponse
+            }
+            write(200, res, null, JSON.stringify(dataToResponse));
+        });
+    } else if (restPathSize == 5) {
+        
+    } else {
+        
+    }
 }
 
 
