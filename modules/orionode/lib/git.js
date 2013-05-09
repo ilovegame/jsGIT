@@ -150,11 +150,22 @@ function getBranch(res, rest, dataJson, workspaceDir) {
             if (err) {
                 writeError(500, res, err);
             }
-            
-            var branchesInfo = new Array();
-            for (var branchName in branchesList) {
-                branchesInfo.push(
-                    {
+            var selectedBranch;
+            if (rest.split('/').length == 4) {
+                selectedBranch = ""
+            } else {
+                var parts = rest.split('/');
+                selectedBranch = parts[parts.length - 4];
+            }
+
+            var dataToResponse;
+
+            if (selectedBranch) {
+                for (var branchName in branchesList) {
+                    if (branchName != selectedBranch) {
+                        continue;
+                    }
+                    dataToResponse = {
                         "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                         "CommitLocation": "/gitapi/commit/" + branchName + "/file/" + repoName + "/",
                         "Current": branchesList[branchName]['active'],
@@ -164,11 +175,29 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                         "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
                         "Type": "Branch"
                     }
-                );
+                    break;
+                }
+            } else {
+                var branchesInfo = new Array();
+                for (var branchName in branchesList) {
+                    branchesInfo.push(
+                        {
+                            "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+                            "CommitLocation": "/gitapi/commit/" + branchName + "/file/" + repoName + "/",
+                            "Current": branchesList[branchName]['active'],
+                            "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                            "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+                            "Name": branchName,
+                            "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                            "Type": "Branch"
+                        }
+                    );
+                }
+                var dataToResponse = {
+                    "Children": branchesInfo
+                }
             }
-            var dataToResponse = {
-                "Children": branchesInfo
-            }
+            
 
             write(200, res, null, JSON.stringify(dataToResponse));
         });
@@ -230,7 +259,7 @@ function getIndex(res, rest, dataJson, workspaceDir) {
 }
 
 function getRemote(res, rest, dataJson, workspaceDir) {
-	
+
 }
 
 
