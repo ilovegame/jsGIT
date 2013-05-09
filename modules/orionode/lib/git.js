@@ -149,6 +149,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
         git.gitBranchCommand.getBranchesMetadata(pathToRepo, function (err, branchesList) {
             if (err) {
                 writeError(500, res, err);
+                return;
             }
             var selectedBranch;
             if (rest.split('/').length == 4) {
@@ -200,6 +201,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
             
 
             write(200, res, null, JSON.stringify(dataToResponse));
+            return;
         });
 }
 
@@ -274,6 +276,7 @@ function getRemote(res, rest, dataJson, workspaceDir) {
         git.gitRemoteCommand.getRemotesNames(pathToRepo, function(err, remotesNames) {
             if (err) {
                 write(500, res, err);
+                return;
             }
             var remotesNamesToResponse = new Array();
             for (var name in remotesNames) {
@@ -289,6 +292,7 @@ function getRemote(res, rest, dataJson, workspaceDir) {
                 "Children": remotesNamesToResponse
             }
             write(200, res, null, JSON.stringify(dataToResponse));
+            return;
         });
     } else if (restPathSize == 5) {
         
@@ -410,7 +414,27 @@ function getTag(res, rest, dataJson, workspaceDir) {
 
 
 function postBranch(res, rest, dataJson, workspaceDir) {
-	
+    var repoName = rest.split('/');
+    repoName = repoName[repoName.length - 2];
+    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+    var branchName = dataJson.Name;
+    git.gitBranchCommand.createBranch(pathToRepo, branchName, function(err) {
+        if (err) {
+            writeError(500, res, err);
+            return;
+        }
+        var dataToResponse = {
+            "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+            "CommitLocation": "/gitapi/commit/" + branchName + "/file/" + repoName + "/",
+            "Current": false,
+            "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+            "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+            "Name": branchName,
+            "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName +  "/",
+            "Type": "Branch"
+        }
+        write(201, res, null, JSON.stringify(dataToResponse));
+    });
 }
 
 // TODO mk dir orionode/.workspace !!!
