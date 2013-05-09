@@ -206,6 +206,10 @@ function getBranch(res, rest, dataJson, workspaceDir) {
 }
 
 function getClone(res, rest, dataJson, workspaceDir) {
+    // /gitapi/clone/file/re/
+    // /gitapi/clone/workspace
+    console.log("ccccccccccccccccccc");
+    console.log(rest);
     function sendResponse(repositories)
     {
         var entries = [ ];
@@ -239,14 +243,218 @@ function getClone(res, rest, dataJson, workspaceDir) {
         }
         else
         {
-            sendResponse(repos);
+            
+            if (rest.split(path.sep)[1] === 'file') //info about one repo
+            {
+                console.log(repos);
+                var entry;
+                repos.forEach(function (repo) {
+                    if (repo === rest.split(path.sep)[2])
+                    {
+                        entry = repo;
+                    }
+                });
+                sendResponse([entry]);
+            }
+            else //all repos
+            {
+                sendResponse(repos);
+            }
         }
     });
 }
 
 function getCommit(res, rest, dataJson, workspaceDir) {
+//writeError(500, res, err);
 
 
+
+    var repoName = path.basename(rest);
+    repo = path.join(repoName, '.git');
+    
+    function sendResponse(repositories)
+    {
+        var entries = [ ];
+        /*
+        repositories.forEach(function (repository) {
+            var entry = {
+                'BranchLocation': '/gitapi/branch/file/' + repository + '/', 
+                'CommitLocation': '/gitapi/commit/file/' + repository + '/', 
+                'ConfigLocation': '/gitapi/config/clone/file/' + repository + '/', 
+                'ContentLocation': '/file/' + repository + '/', 
+                'DiffLocation': '/gitapi/diff/Default/file/' + repository + '/', 
+                'HeadLocation': '/gitapi/commit/HEAD/file/' + repository + '/', 
+                'IndexLocation': '/gitapi/index/file/' + repository + '/', 
+                'Location': '/gitapi/clone/file/' + repository + '/', 
+                'Name': repository,
+                'RemoteLocation': '/gitapi/remote/file/' + repository + '/', 
+                'StatusLocation': '/gitapi/status/file/' + repository + '/', 
+                'TagLocation': '/gitapi/tag/file/' + repository + '/', 
+                'Type': 'Clone' 
+            }
+            entries.push(entry);
+        });
+        */
+        var entry =     {
+                "AuthorEmail": "admin@orionhub.org",
+                "AuthorImage": "http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm",
+                "AuthorName": "admin",
+                "CloneLocation": "/gitapi/clone/file/msabat/test/",
+                "CommitterEmail": "admin@orionhub.org",
+                "CommitterName": "admin",
+                "DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
+                "Location": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
+                "Message": "Initial commit",
+                "Name": "67c56cc33d137af40605cc628785441ddc76c724",
+                "Parents": [],
+                "Tags": [],
+                "Time": 1355154361000,
+                "Type": "Commit"
+                };
+      entries.push(entry);
+/*
+  "CloneLocation": "/gitapi/clone/file/msabat/test/",
+  "Location": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+  "RepositoryPath": "",
+  "Type": "Commit",
+  "toRef": {
+    "CloneLocation": "/gitapi/clone/file/msabat/test/",
+    "CommitLocation": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+    "Current": true,
+    "DiffLocation": "/gitapi/diff/master/file/msabat/test/",
+    "FullName": "refs/heads/master",
+    "HeadLocation": "/gitapi/commit/HEAD/file/msabat/test/",
+    "LocalTimeStamp": 1365600727000,
+    "Location": "/gitapi/branch/master/file/msabat/test/",
+    "Name": "master",
+    "RemoteLocation": [],
+    "Type": "Branch"
+  }
+*/
+        var json = JSON.stringify( {    'Children' : entries, 
+                                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                        'Location': "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+                                        'RepositoryPath': '',
+                                        'Type': 'Commit',
+                                           "toRef": {
+    "CloneLocation": "/gitapi/clone/file/" + repoName,
+    "CommitLocation": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+    "Current": true,
+    "DiffLocation": "/gitapi/diff/master/file/msabat/test/",
+    "FullName": "refs/heads/master",
+    "HeadLocation": "/gitapi/commit/HEAD/file/msabat/test/",
+    "LocalTimeStamp": 1365600727000,
+    "Location": "/gitapi/branch/master/file/" + repoName,
+    "Name": "master",
+    "RemoteLocation": [],
+    "Type": "Branch"
+  }
+                                    
+                                    } );
+        write(200, res, null, json);
+    }
+    
+    git.gitCommitCommand.geBranchCommitsByName(path.join(workspaceDir, repo), "master", function(err, commits) {
+        console.log("wykonane!");
+        console.log(workspaceDir);
+        //commit/master/file/re
+        //console.log(rest);
+        
+        if (err)
+        {
+            write(500, res, 'Cannot get commit list');
+            //console.log('aaachtung');
+            //console.log(err);
+        }
+        else
+        {
+            //sendResponse(repos);
+            console.log(commits);
+            sendResponse([]);
+        }
+/*
+{
+  "Children": [
+    {
+      "AuthorEmail": "das",
+      "AuthorImage": "http://www.gravatar.com/avatar/2a6571da26602a67be14ea8c5ab82349?d=mm",
+      "AuthorName": "das",
+      "Branches": [
+        {"FullName": "refs/heads/dev"},
+        {"FullName": "refs/heads/master"}
+      ],
+      "CloneLocation": "/gitapi/clone/file/msabat/test/",
+      "CommitterEmail": "dsa",
+      "CommitterName": "dsa",
+      "DiffLocation": "/gitapi/diff/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/",
+      "Diffs": [
+        {
+          "ChangeType": "ADD",
+          "ContentLocation": "/file/msabat/test/New%20File",
+          "DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/New%20File",
+          "NewPath": "New File",
+          "OldPath": "/dev/null",
+          "Type": "Diff"
+        },
+        {
+          "ChangeType": "ADD",
+          "ContentLocation": "/file/msabat/test/drugi",
+          "DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi",
+          "NewPath": "drugi",
+          "OldPath": "/dev/null",
+          "Type": "Diff"
+        }
+      ],
+      "Location": "/gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/",
+      "Message": "sfdsf",
+      "Name": "5329cb1882c503ea7faf0c0d1650f4d9eda59532",
+      "Parents": [{
+        "Location": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
+        "Name": "67c56cc33d137af40605cc628785441ddc76c724"
+      }],
+      "Tags": [],
+      "Time": 1365600727000,
+      "Type": "Commit"
+    },
+    {
+      "AuthorEmail": "admin@orionhub.org",
+      "AuthorImage": "http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm",
+      "AuthorName": "admin",
+      "CloneLocation": "/gitapi/clone/file/msabat/test/",
+      "CommitterEmail": "admin@orionhub.org",
+      "CommitterName": "admin",
+      "DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
+      "Location": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
+      "Message": "Initial commit",
+      "Name": "67c56cc33d137af40605cc628785441ddc76c724",
+      "Parents": [],
+      "Tags": [],
+      "Time": 1355154361000,
+      "Type": "Commit"
+    }
+  ],
+  "CloneLocation": "/gitapi/clone/file/msabat/test/",
+  "Location": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+  "RepositoryPath": "",
+  "Type": "Commit",
+  "toRef": {
+    "CloneLocation": "/gitapi/clone/file/msabat/test/",
+    "CommitLocation": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
+    "Current": true,
+    "DiffLocation": "/gitapi/diff/master/file/msabat/test/",
+    "FullName": "refs/heads/master",
+    "HeadLocation": "/gitapi/commit/HEAD/file/msabat/test/",
+    "LocalTimeStamp": 1365600727000,
+    "Location": "/gitapi/branch/master/file/msabat/test/",
+    "Name": "master",
+    "RemoteLocation": [],
+    "Type": "Branch"
+  }
+}
+*/
+        
+    
+    });
 }
 
 function getConfig(res, rest, dataJson, workspaceDir) {
@@ -363,7 +571,7 @@ Untracked: []
             // var json = JSON.stringify( { 'Children' : entries, 'Type': 'Clone' } );
             var json = JSON.stringify( entry
             );
-            write(200, res, null, json);
+           // write(200, res, null, json);
         }
     });
 /*
