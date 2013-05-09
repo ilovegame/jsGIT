@@ -747,7 +747,7 @@ function getTag(res, rest, dataJson, workspaceDir) {
     repoName = repoName[repoName.length - 2];
     var pathToRepo = workspaceDir + '/' + repoName + '/.git';
 
-    git.gitTagCommand.getTags(pathToRepo, function(err, tags) {
+    git.gitTagCommand.getTagNames(pathToRepo, function(err, tags) {
         if (err) {
             writeError(500, res, err);
             return;
