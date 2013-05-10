@@ -67,14 +67,11 @@ module.exports = function(options) {
 	.use(resource(fileRoot, {
 		GET: function(req, res, next, rest) {
 			var handler = getHandlers;
-            //console.log(rest);
-            //console.log(req);
+
             lastReqPath = req.path;
-            //console.log("LAST REQ PATH");
-            //console.log(lastReqPath);
-            //console.log(req._parsedUrl);
+
             lastReqPath = req._parsedUrl;
-            //throw 'ss';
+
 			doJob(handler, rest, req, res, workspaceDir);
 		},
 
@@ -92,15 +89,6 @@ module.exports = function(options) {
 			var handler = putHandlers;
 			doJob(handler, rest, req, res, workspaceDir);
 		},
-        OPTIONS: function(req, res, next, rest) {
-            //var handler = putHandlers;
-            //doJob(handler, rest, req, res, workspaceDir);
-            console.log('helol!');
-            var handler = getHandlers;
-            console.log("GET:");
-            console.log(rest);
-            doJob(handler, rest, req, res, workspaceDir);
-        },
 	}));
 };
 
@@ -671,6 +659,8 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     
     // /gitapi/diff/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/,
     // /gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt?parts=diff
+    // /gitapi/diff/Default/file/test/NewFile?parts=uris
+    // /gitapi/diff/Default/file/test/anotherFile.txt?parts=uris
     var splittedRest = rest.split('/');
     var uris = 'parts=uris';
     var repoName = path.basename(splittedRest[3]);
@@ -678,7 +668,46 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     var repoPath = path.join(workspaceDir, repo);
     var file = splittedRest[4];
 
-    if (splittedRest[1].length === 40) // 
+    
+    if (splittedRest[1] === 'Default') //TODO: test when status is done
+    {
+        // Getting a diff between working tree and index 
+        if (lastReqPath.query === uris)
+        {
+                /*
+    Base: "/gitapi/index/file/msabat/test/anotherFile.txt"
+    CloneLocation: "/gitapi/clone/file/msabat/test/"
+    Location: "/gitapi/diff/Default/file/msabat/test/anotherFile.txt"
+    New: "/file/msabat/test/anotherFile.txt"
+    Old: "/gitapi/index/file/msabat/test/anotherFile.txt"
+    Type: "Diff"
+                */
+                var json = JSON.stringify( {    
+                                                'Base': '/gitapi/index/file/' + repoName + '/' + file,
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                                'Location': '/gitapi/diff/Default/file' + repoName + '/' + file,
+                                                'New': '/file/' + repoName + '/' + file,
+                                                'Old': '/gitapi/index/file/' + repoName + '/' + file,
+                                                'Type': 'Diff'
+                                            } );
+                write(200, res, null, json);
+        }
+        else if (lastReqPath.query === 'parts=diff')
+        {
+            git.gitDiffCommand.getDiffWorkingTreeAndIndex(repoPath, function(err, diffs) {
+                if (err)
+                {
+                    write(500, res, 'Cannot get diff');
+                }
+                else
+                {
+                    var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                    write(200, res, null, temp);
+                }
+            }, file);
+        }
+    }
+    else if (splittedRest[1].length === 40) // 
     {
         
         var sha1 = splittedRest[1];
