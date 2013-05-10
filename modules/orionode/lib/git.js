@@ -601,7 +601,70 @@ function getCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function getConfig(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/config/core.filemode/clone/file/re/
+// /gitapi/config/clone/file/re/
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    function sendResponse (entries)
+    {
+        var json = JSON.stringify( {    'Children' : entries, 
+                                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                        'Location': '/gitapi/config/clone/file/' + repoName,
+                                        'Type': 'Config'
+                                    
+                                    } );
+        write(200, res, null, json);
+    }
+
+
+    if (rest.split('/').length === 5)
+    {
+        git.gitConfigCommand.getOptions (repoPath, function(err, options) {
+            if (err)
+            {
+                
+            }
+            else
+            {
+                var entries = [];
+                for (var key in options) 
+                {
+                    var entry = {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': key,
+                        'Location': '/gitapi/config/' + key + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': options[key]
+                    };
+                    entries.push(entry);
+                }
+                sendResponse(entries);
+            }
+        });
+    }
+    else
+    {
+        var variableName = rest.split('/')[1];
+        git.gitConfigCommand.getOption (repoPath, function(err, value) {
+            if (err)
+            {
+                
+            }
+            else
+            {
+                var entry = {
+                    'CloneLocation': '/gitapi/clone/file/' + repoName,
+                    'Key': variableName,
+                    'Location': '/gitapi/config/' + variableName + '/clone/file/' + repoName,
+                    'Type': 'Config',
+                    'Value': value
+                };
+
+                sendResponse([entry]);
+            }
+        });
+    }
 }
 function getDiff(res, rest, dataJson, workspaceDir) {
     
@@ -864,7 +927,30 @@ function postCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function postConfig(res, rest, dataJson, workspaceDir) {
-	
+
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+
+    git.gitConfigCommand.addOption (repoPath, dataJson['Key'], dataJson['Value'], function(err) {
+        if (err)
+        {
+            
+        }
+        else
+        {
+            var json = JSON.stringify( {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': dataJson['key'],
+                        'Location': '/gitapi/config/' + dataJson['key'] + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': dataJson['value']
+                    } );
+        write(200, res, null, json);
+        }
+        
+    });
+
 }
 function postDiff(res, rest, dataJson, workspaceDir) {
 	
@@ -899,7 +985,29 @@ function putCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function putConfig(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/config/core.filemode/clone/file/test/
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var key = rest.split('/')[1];
+    git.gitConfigCommand.updateOption (repoPath, key, dataJson['Value'], function(err) {
+        if (err)
+        {
+            
+        }
+        else
+        {
+            var json = JSON.stringify( {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': key,
+                        'Location': '/gitapi/config/' + key + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': dataJson['value']
+                    } );
+            write(200, res, null, json);
+        }
+        
+    });
 }
 function putDiff(res, rest, dataJson, workspaceDir) {
 	
@@ -948,7 +1056,22 @@ function deleteCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteConfig(res, rest, dataJson, workspaceDir) {
-	
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var key = rest.split('/')[1];
+
+    git.gitConfigCommand.removeOption (repoPath, key, function(err) {
+        if (err)
+        {
+            
+        }
+        else
+        {
+            write(200, res, null, '');
+        }
+        
+    });
+
 }
 function deleteDiff(res, rest, dataJson, workspaceDir) {
 	
