@@ -258,6 +258,28 @@ function getClone(res, rest, dataJson, workspaceDir) {
     });
 }
 
+//TODO!!!!
+ //TODO sha1 should be in tags
+function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
+{
+        var entries = [ ];
+        tags.forEach(function (tag) {
+            var entry = {
+                    'CloneLocation': '/gitapi/clone/file/' + repoName,
+                    'CommitLocation': '/gitapi/commit/' + sha1 + '/file/' + repoName,
+                    'FullName' : 'refs/tags/' + tag,
+                    "LocalTimeStamp": 1365600727000,
+                    'Location': '/gitapi/tag/' + tag + '/file/' + repoName,
+                    'Name': tag,
+                    'TagType': 'ANNOTATED',
+                    'Type': 'Tag'
+            };
+            entries.push(entry);
+        });
+
+        return entries;
+}
+    
 function getCommit(res, rest, dataJson, workspaceDir) {
     var repoName;
     var repoPath;
@@ -265,6 +287,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     repoName= path.basename(rest);
     repo = path.join(repoName, '.git');
     repoPath= path.join(workspaceDir, repo);
+
 
      function getParents(parents)
      {
@@ -397,41 +420,58 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             else
             {
                 commit.branches = branches
-                /*
+                //TODO
+                
                 git.gitTagCommand.getTagNames(repoPath, function(err, tags) {
                     var selectedTags = [];
                     console.log("!!!");
                     console.log(tags);
+                    /*
                     tags.forEach(function(tag) {
                         if (tag.objectId === commit.sha1)
                         {
                             selectedTags.push(tag);
                         }
                     });
-                    commit.tags = selectedTags;
+                    */
+                    //commit.tags = selectedTags;
+                    commit.tags = tags;
                     console.log("tags:");
                     console.log(commit.tags);
                     //callback(null, commits[i]);
-                    callback(null, commit);
+                    
+                   
+                    
+                    if (commit.parents.length === 0)
+                    {
+                        git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+
+                            commit.diffs = diffs;
+                            callback(null, commit);
+                        }, null);
+                    }
+                    else
+                    {
+                        //TODO, multiple parents
+                        git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
+
+                            commit.diffs = diffs;
+                            callback(null, commit);
+                        }, null);
+                    }
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 });
-                */
-                if (commit.parents.length === 0)
-                {
-                    git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+                
 
-                        commit.diffs = diffs;
-                        callback(null, commit);
-                    }, null);
-                }
-                else
-                {
-                    //TODO, multiple parents
-                    git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
-
-                        commit.diffs = diffs;
-                        callback(null, commit);
-                    }, null);
-                }
             }
         });
     }
@@ -443,7 +483,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
 
             if (err)
             {
-                
+                write(500, res, 'Error occured');
             }
             else
             {
@@ -466,7 +506,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                             'Message': commit.description,
                             'Name': commit.sha1,
                             'Parents': parents,
-                            "Tags": [], //TODO
+                            'Tags': tagsToJson(commit.tags, commit.sha1, repoName),
                             'Time': 1000*parseInt(commit.author.timestamp), // why ?
                             'Type': 'Commit'
                             };
@@ -611,7 +651,7 @@ function getConfig(res, rest, dataJson, workspaceDir) {
         git.gitConfigCommand.getOptions (repoPath, function(err, options) {
             if (err)
             {
-                
+                write(500, res, 'Error occured');
             }
             else
             {
@@ -637,7 +677,7 @@ function getConfig(res, rest, dataJson, workspaceDir) {
         git.gitConfigCommand.getOption (repoPath, function(err, value) {
             if (err)
             {
-                
+                write(500, res, 'Error occured');
             }
             else
             {
@@ -878,17 +918,12 @@ function getTag(res, rest, dataJson, workspaceDir) {
             return;
         }
         var dataToResponse;
-        var tagsToResponse = new Array();
-        for (var tagIndex in tags) {
-            tagsToResponse.push(
-                {
-                    "FullName": "refs/tags/" + tags[tagIndex],
-                    "Name": tags[tagIndex]
-                }
-            );
-        }
+        
+        var tagsToResponse = tagsToJson(tags, '', repoName);
+        
         dataToResponse = {
-            "Children": tagsToResponse
+            "Children": tagsToResponse,
+            'Type' : 'Tag'
         }
 
         write(200, res, null, JSON.stringify(dataToResponse));
@@ -964,7 +999,7 @@ function postConfig(res, rest, dataJson, workspaceDir) {
     git.gitConfigCommand.addOption (repoPath, dataJson['Key'], dataJson['Value'], function(err) {
         if (err)
         {
-            
+            write(500, res, 'Error occured');
         }
         else
         {
@@ -998,7 +1033,7 @@ function postStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function postTag(res, rest, dataJson, workspaceDir) {
-	
+    //probably not used. can't find link in UI with that action
 }
 
 function putBranch(res, rest, dataJson, workspaceDir) {
@@ -1010,7 +1045,19 @@ function putClone(res, rest, dataJson, workspaceDir) {
 }
 
 function putCommit(res, rest, dataJson, workspaceDir) {
-	
+    // /gitapi/commit/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var splittedRest = rest.split('/');
+    var sha1 = splittedRest[1];
+    var author = 'A';
+    var authorMail = 'B';
+    var description = 'C';
+    git.gitTagCommand.addTag (repoPath, author, authorMail, dataJson['Name'], description, sha1, function(err) {
+        
+        write(200, res, null, '');
+    });
+    
 }
 
 function putConfig(res, rest, dataJson, workspaceDir) {
@@ -1022,7 +1069,7 @@ function putConfig(res, rest, dataJson, workspaceDir) {
     git.gitConfigCommand.updateOption (repoPath, key, dataJson['Value'], function(err) {
         if (err)
         {
-            
+            write(500, res, 'Error occured');
         }
         else
         {
@@ -1055,7 +1102,7 @@ function putStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function putTag(res, rest, dataJson, workspaceDir) {
-	
+    //probably not used. can't find link in UI with that action
 }
 
 function deleteBranch(res, rest, dataJson, workspaceDir) {
@@ -1119,5 +1166,19 @@ function deleteStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteTag(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/tag/tag1/file/test
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var tagName = rest.split('/')[1];
+    git.gitTagCommand.removeTag (repoPath, tagName, function(err) {
+        if (err)
+        {
+            write(500, res, 'Error occured');
+        }
+        else
+        {
+            write(200, res, null, '');
+        }
+        
+    });
 }
