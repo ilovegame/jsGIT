@@ -155,7 +155,20 @@ function getBranch(res, rest, dataJson, workspaceDir) {
             }
 
             var dataToResponse;
-
+/*
+CloneLocation: "/gitapi/clone/file/msabat/test/"
+CommitLocation: "/gitapi/commit/refs%252Fheads%252Fdev/file/msabat/test/"
+Current: false
+DiffLocation: "/gitapi/diff/dev/file/msabat/test/"
+FullName: "refs/heads/dev"
+HeadLocation: "/gitapi/commit/HEAD/file/msabat/test/"
+LocalTimeStamp: 1365600727000
+Location: "/gitapi/branch/dev/file/msabat/test/"
+Name: "dev"
+RemoteLocation: []
+Type: "Branch"
+Type: "Branch"
+*/
             if (selectedBranch) {
                 for (var branchName in branchesList) {
                     if (branchName != selectedBranch) {
@@ -192,8 +205,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                 var dataToResponse = {
                     "Children": branchesInfo
                 }
-            }
-            
+            }           
 
             write(200, res, null, JSON.stringify(dataToResponse));
             return;
@@ -279,17 +291,11 @@ function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
 
         return entries;
 }
-    
-function getCommit(res, rest, dataJson, workspaceDir) {
-    var repoName;
-    var repoPath;
-
-    repoName= path.basename(rest);
-    repo = path.join(repoName, '.git');
-    repoPath= path.join(workspaceDir, repo);
 
 
-     function getParents(parents)
+
+/////////////////////////////////////////////////////////////////////
+     function getParents(repoName, parents)
      {
          var entries = [ ];
 
@@ -318,7 +324,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
          return entries;
      }
      
-     function getDiffs(commit)
+     function getDiffs(repoName, commit)
      {
          var entries = [ ];
          //console.log(parents);{"FullName": "refs/heads/dev"},
@@ -475,22 +481,21 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             }
         });
     }
-
-    function sendResponse(commits)
-    {
-        
+    
+function commitsToJson(repoPath, repoName, commits, callback)
+{
         getCommitsDetails(repoPath, commits, 0, function(err, extendedCommits) {
 
             if (err)
             {
-                write(500, res, 'Error occured');
+                callback(err, null);
             }
             else
             {
                 var entries = [ ];
                 extendedCommits.forEach(function (commit) {
                     //console.log(parseInt(commit.author.timestamp));
-                    var parents = getParents(commit.parents);
+                    var parents = getParents(repoName, commit.parents);
                     var entry =     {
                             'AuthorEmail': commit.author.authorMail,
                             'AuthorImage': 'http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm',
@@ -500,7 +505,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                             'CommitterEmail': commit.committer.authorMail,
                             'CommitterName': commit.committer.author,
                             'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName,
-                            'Diffs' : getDiffs(commit),
+                            'Diffs' : getDiffs(repoName, commit),
 
                             'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName,
                             'Message': commit.description,
@@ -534,12 +539,39 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                                                     }
                                             
                                             } );
-                write(200, res, null, json);
                 
+                callback(null, json);
             }
             
             
         });
+    
+}
+
+function getCommit(res, rest, dataJson, workspaceDir) {
+    var repoName;
+    var repoPath;
+
+    repoName= path.basename(rest);
+    repo = path.join(repoName, '.git');
+    repoPath= path.join(workspaceDir, repo);
+
+
+
+
+    function sendResponse(commits)
+    {
+        commitsToJson(repoPath, repoName, commits, function(err, json) {
+            if (err)
+            {
+                write(500, res, 'Cannot get repostory list');
+            }
+            else
+            {
+                write(200, res, null, json);
+            }
+        });
+
         
         
 
