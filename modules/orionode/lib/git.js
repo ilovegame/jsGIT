@@ -21,7 +21,7 @@ var resource = require('./resource');
 var USER_WRITE_FLAG = parseInt('0200', 8);
 var USER_EXECUTE_FLAG = parseInt('0100', 8);
 var ph = require('path');
-
+var lastReqPath = null;
 /*
  *
  * Module begins here
@@ -67,7 +67,14 @@ module.exports = function(options) {
 	.use(resource(fileRoot, {
 		GET: function(req, res, next, rest) {
 			var handler = getHandlers;
-            console.log(rest);
+            //console.log(rest);
+            //console.log(req);
+            lastReqPath = req.path;
+            //console.log("LAST REQ PATH");
+            //console.log(lastReqPath);
+            //console.log(req._parsedUrl);
+            lastReqPath = req._parsedUrl;
+            //throw 'ss';
 			doJob(handler, rest, req, res, workspaceDir);
 		},
 
@@ -264,10 +271,13 @@ function getClone(res, rest, dataJson, workspaceDir) {
 }
 
 function getCommit(res, rest, dataJson, workspaceDir) {
-    var repoName = path.basename(rest);
+    var repoName;
+    var repoPath;
+
+    repoName= path.basename(rest);
     repo = path.join(repoName, '.git');
-    var repoPath = path.join(workspaceDir, repo);
-    
+    repoPath= path.join(workspaceDir, repo);
+
      function getParents(parents)
      {
          var entries = [ ];
@@ -306,16 +316,29 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 var OldPath;
                 var diffLocation;
                 var modified = true;
-                
+                console.log("aaaaaaaaaaa: " + repoName);
                 if (commit.parents.length == 0)
                 {
                     OldPath = '/dev/null';
-                    diffLocation = "/gitapi/diff/" + commit.sha1 + "/file/" + repo + "/" + file;
+                    diffLocation = "/gitapi/diff/" + commit.sha1 + "/file/" + repoName +  file;
                 }
                 else
                 {
+                    // https://orionhub.org/gitapi/diff/5329cb1882c503ea7faf0c0d1650f4d9eda59532..fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/New%20File?parts=uris
                     OldPath = file;
-                    diffLocation = "/gitapi/diff/" + commit.parents[0] + ".." + commit.sha1 + "/file/" + repo + "/" + file;
+                    diffLocation = "/gitapi/diff/" + commit.parents[0] + ".." + commit.sha1 + "/file/" + repoName + file;
+
+    // "DiffLocation": "/gitapi/diff/fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/",
+    // "DiffLocation": "/gitapi/diff/5329cb1882c503ea7faf0c0d1650f4d9eda59532..fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/New%20File",
+
+// moje:
+// DiffLocation: "/gitapi/diff/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/"
+// DiffLocation: "/gitapi/diff/7d8a8042d1b3a1e815a9e93366918864e1444c99..d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/2.txt"
+
+// moje : 
+// "http://localhost:8081/gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt"
+// ich:
+// https://orionhub.org/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi?parts=uris
                 }
                 var changeType;
                 if (diff.length === 1)
@@ -342,6 +365,8 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                                     "ChangeType": changeType,
                                     "ContentLocation": "/file/" + repo + "/" + file,
                                     "DiffLocation": diffLocation,
+                                    //"DiffLocation" : "http://localhost:8081/gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt",
+                                    //"DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/test/drugi",
                                     "NewPath": file,
                                     "OldPath": OldPath,
                                     "Type": "Diff"
@@ -527,26 +552,41 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     // opcja 1 : /gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
     // opcja 2 : /gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
     // opcja 3 : /gitapi/commit/HEAD/file/msabat/test
-    // opcja 4 : "/gitapi/commit/file/msabat/test/"
-    
+    // opcja 4 : /gitapi/commit/file/msabat/test/
+    // opcja 5: /gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/New%20File?parts=body
 
+    //TODO:
+    // opcja 6 : /gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body
     var restWords = rest.split("/");
 
 
     var refsPrefix = 'refs%252heads%252';
     
+    /*
+         repoName= path.basename(rest);
+    repo = path.join(repoName, '.git');
     
+    repoPath= path.join(workspaceDir, repo);
+    */
     // getCommitBranches
-    if (restWords[1] === 'file') //TODO
+    if (restWords[1] === '_')
     {
+        write(200, res, null, '');
+    }
+    else if (restWords[1] === 'file') //TODO
+    {
+
         //getHeadCommits(repoPath, callback)
     }
     else if (restWords[1] === 'HEAD') //TODO
     {
+
         //getHeadCommits(repoPath, callback)
     }
     else if (restWords[1].substr(0, refsPrefix.length) === refsPrefix) // refs heads
     {
+
+        
         branchName = restWords[1].substr(refsPrefix.length);
         git.gitCommitCommand.geBranchCommitsByName(path.join(workspaceDir, repo), branchName, function(err, commits) {
             if (err)
@@ -566,18 +606,57 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     {
         var sha1 = restWords[1];
         
-        git.gitCommitCommand.getCommitMetadata(path.join(workspaceDir, repo), sha1, function(err, commit) {
-            if (err)
-            {
-                write(500, res, 'Cannot get commit details');
-            }
-            else
-            {
+        console.log("zzzzzzzzzzzzzzzzz");
+        console.log(restWords.length);
+        //if (restWords.length === 5) 
+        console.log(lastReqPath.query);
+        if (lastReqPath.query !== "parts=body")
+        {
+        
+            git.gitCommitCommand.getCommitMetadata(path.join(workspaceDir, repo), sha1, function(err, commit) {
+                if (err)
+                {
+                    write(500, res, 'Cannot get commit details');
+                }
+                else
+                {
 
-                //console.log(commits);
-                sendResponse([commit]);
-            }
-        });
+                    //console.log(commits);
+                    sendResponse([commit]);
+                }
+            });
+        }
+        else
+        {
+            repoName = path.basename(path.dirname(rest));
+            console.log("repoName");
+            console.log(repoName);
+            var file = path.basename(rest);
+            repo = path.join(repoName, '.git');
+            repoPath= path.join(workspaceDir, repo);
+            
+            console.log(file);
+            console.log(repoName);
+            console.log("WEZ PLIK Z COMMITA");
+            git.gitCommitCommand.getFileFromCommit(repoPath, sha1, file, function(err, fileContent) {
+                if (err)
+                {
+                    write(500, res, 'Cannot get file from commit');
+                }
+                else
+                {
+
+                    //console.log(commits);
+                    //sendResponse([commit]);
+                    console.log("file content");
+                    console.log(fileContent);
+                      //var temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
+                      var temp = "hyhy";
+                write(200, res, null, fileContent);
+                    //write(200, res, fileContent);
+                }
+            });
+        }
     }
             
 
@@ -591,7 +670,109 @@ function getConfig(res, rest, dataJson, workspaceDir) {
 }
 function getDiff(res, rest, dataJson, workspaceDir) {
     // comm1_sha1..comm2_sha1/file/reponame/filename
-	
+    // /gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt?parts=diff
+    var splittedRest = rest.split('/');
+        var uris = "parts=uris";
+        var repoName = path.basename(splittedRest[3]);
+        var repo = path.join(repoName, '.git');
+        var repoPath = path.join(workspaceDir, repo);
+        var file = splittedRest[4];
+    // function getDiffCommit (repoPath, newCommitSha1, callback, relativeFilePath)
+    
+    if (splittedRest[1].length === 40) // /gitapi/diff/fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/
+    {
+        var sha1 = splittedRest[1];
+        if (lastReqPath.query === uris)
+        {
+            console.log("uuuuuuuuuuuuuuuuuuuuuuuuuuuris");
+                var json = JSON.stringify( {    
+                                                "Base": "/gitapi/commit/" + sha1 + "/file/" + repoName + "/" + file + "parts=body", //TODO or newSha1 ?
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                                'Location': '/gitapi/diff/' + sha1 + '/file/' + repoName + '/' + file,
+                                                'New': '/gitapi/commit/' + sha1 + '/file/' + repoName + '/' + file + '?parts=body',
+                                                'Old': '/gitapi/commit/_/file/' + repoName + '/' + file + '?parts=body',
+                                                //'Old': '/dev/null',
+                                                'Type': 'Diff'
+                                            } );
+                write(200, res, null, json);
+        }
+        else
+        {
+
+
+        //if uris
+            git.gitDiffCommand.getDiffCommit(repoPath, sha1, function(err, diffs) {
+
+                console.log(err);
+                //callback(null, commit);
+                console.log(diffs);
+                var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                console.log(temp);
+                
+                //temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
+                
+                write(200, res, null, temp);
+            }, file);
+        }
+    }
+    else
+    {
+/*       
+{
+  "Base": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body",
+  "CloneLocation": "/gitapi/clone/file/msabat/test/",
+  "Location": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi",
+  "New": "/gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi?parts=body",
+  "Old": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body",
+  "Type": "Diff"
+}
+*/  
+        
+
+        var sha1 = splittedRest[1].split('..');
+        var newSha1 = sha1[1];
+        var oldSha1 = sha1[0];
+        if (lastReqPath.query === uris)
+        {
+            console.log("uuuuuuuuuuuuuuuuuuuuuuuuuuuris");
+                var json = JSON.stringify( {    
+                                                "Base": "/gitapi/commit/" + oldSha1 + "/file/" + repoName + "/" + file + "parts=body", //TODO or newSha1 ?
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                                'Location': '/gitapi/diff/' + oldSha1 + '..' + newSha1 + '/file/' + repoName + '/' + file,
+                                                'New': '/gitapi/commit/' + newSha1 + '/file/' + repoName + '/' + file + '?parts=body',
+                                                'Old': '/gitapi/commit/' + oldSha1 + '/file/' + repoName + '/' + file + '?parts=body',
+                                                'Type': 'Diff'
+                                            } );
+                write(200, res, null, json);
+        }
+        else
+        {
+            console.log('diffff');
+
+            //splittedRest[2] - "file"
+
+            
+            
+            //console.log(file);
+            git.gitDiffCommand.getDiffCommitCommit(repoPath, oldSha1, newSha1, function(err, diffs) {
+
+                console.log(err);
+                //callback(null, commit);
+                console.log(diffs);
+                var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                console.log(temp);
+                
+                //temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
+                
+                write(200, res, null, temp);
+            }, file);
+        }
+
+    }
+    
+    
+   
+
 }
 
 function getIndex(res, rest, dataJson, workspaceDir) {
