@@ -2,7 +2,9 @@
 	"/plugins":{
 		"plugins/fileClientPlugin.html":true,
 		"plugins/jslintPlugin.html":true,
+		"plugins/gitPlugin.html":true,
 		"plugins/webEditingPlugin.html":true,
+		"plugins/pageLinksPlugin.html":true,
 		"plugins/pageLinksPlugin.html":true,
 		"plugins/csslintPlugin.html": true,
 		"plugins/esprima/esprimaJsContentAssistPlugin.html":true,
