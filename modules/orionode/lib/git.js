@@ -639,9 +639,10 @@ function getStatus(res, rest, dataJson, workspaceDir) {
     var repoName = path.basename(decodeURIComponent(rest));
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    console.log(repoPath);
+    console.log('XrepopathX ' + repoPath);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
         if(err) {
+            console.log(err);
             write(500, res, 'Cannot get repostory status');
         } else {
             var entry = {
@@ -660,8 +661,9 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                 'Type': "Status",
                 'Untracked': []
             }
+            console.log(result);
             var helperFunction = function(arr, key) {
-                for(var i = 0; i < arrlength; ++i) {
+                for(var i = 0; i < arr.length; ++i) {
                     var val = {
                         'Git': {
                             'CommitLocation' : '/gitapi/commit/HEAD/file/' + repoName + '/' + arr[i],
@@ -672,7 +674,7 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                         'Name' : arr[i],
                         'Path' : arr[i]
                     };
-                    entry['key'].push(helpFunction(val));
+                    entry['key'].push(val);
                 }
             }
             helperFunction(result.modified, 'Removed');
