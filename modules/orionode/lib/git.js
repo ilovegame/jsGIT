@@ -430,7 +430,7 @@ function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
                 }
                 var entry =  {
                                     'ChangeType': changeType,
-                                    'ContentLocation': '/file/' + repo + '/' + file,
+                                    'ContentLocation': '/file/' + repoName + '/' + file,
                                     'DiffLocation': diffLocation,
                                     'NewPath': file,
                                     'OldPath': OldPath,
