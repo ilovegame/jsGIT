@@ -1014,7 +1014,7 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 function postClone(res, rest, dataJson, workspaceDir) {
     //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
     var dir = ph.join(workspaceDir, dataJson['Name']);
-
+    console.log('dir ' + dir);
     fs.mkdir(dir, function (err) {
         if (err)
         {
@@ -1029,8 +1029,26 @@ function postClone(res, rest, dataJson, workspaceDir) {
                     writeError(500, res, 'Error occured. Cannot create .git dir');
                 }
                 else {
-                    var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
-                    write(201, res, null, resJson)
+                    var commitInfo = {}
+                    commitInfo.description = 'Initial commit';
+                    commitInfo.author = 'x';
+                    commitInfo.authorMail = 'x';
+                    commitInfo.committer = 'x';
+                    commitInfo.committerMail = 'x';
+                    console.log('dzialasz?');
+                    git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
+                        console.log('oo6');
+                        if (err) {
+                            console.log(err);
+                            writeError(500, res, 'Error occured. Cannot make empty commit dir');
+                            return;
+                        }
+                        console.log('oo4');
+                        console.log(dataJson['Name']);
+                        var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
+                        console.log('oo5');
+                        write(201, res, null, resJson);
+                    });
                 }
             })
         }
@@ -1143,7 +1161,24 @@ function putDiff(res, rest, dataJson, workspaceDir) {
 }
 
 function putIndex(res, rest, dataJson, workspaceDir) {
-	
+    //TODO multifiles;
+    var req = decodeURIComponent(rest).split('/');
+    repoName = req[2]; //  index/file/REPONAME/FILENAME
+    repo = path.join(repoName, '.git');
+    var repoPath = path.join(workspaceDir, repo);
+    var fileRelativeName = '';
+    for(var i = 3; i < req.length; ++i) {
+        fileRelativeName = path.join(fileRelativeName, req[i]);   
+    }
+    git.gitAddCommand.addOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
+        if (err) {
+            console.log('putIndex err');
+            write(500, res, 'Error occured');   
+        } else {
+            console.log('putIndex ok');
+            write(200, res, null, '');
+        }
+    });
 }
 
 function putRemote(res, rest, dataJson, workspaceDir) {
