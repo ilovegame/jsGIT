@@ -138,9 +138,11 @@ deleteHandlers = {
 };
 
 function getBranch(res, rest, dataJson, workspaceDir) {
+        var extendsArgs = lastReqPath.query;
         var repoName = rest.split('/');
         repoName = repoName[repoName.length - 2];
         var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+        
         git.gitBranchCommand.getBranchesMetadata(pathToRepo, function (err, branchesList) {
             if (err) {
                 writeError(500, res, err);
@@ -155,46 +157,76 @@ function getBranch(res, rest, dataJson, workspaceDir) {
             }
 
             var dataToResponse;
-/*
-CloneLocation: "/gitapi/clone/file/msabat/test/"
-CommitLocation: "/gitapi/commit/refs%252Fheads%252Fdev/file/msabat/test/"
-Current: false
-DiffLocation: "/gitapi/diff/dev/file/msabat/test/"
-FullName: "refs/heads/dev"
-HeadLocation: "/gitapi/commit/HEAD/file/msabat/test/"
-LocalTimeStamp: 1365600727000
-Location: "/gitapi/branch/dev/file/msabat/test/"
-Name: "dev"
-RemoteLocation: []
-Type: "Branch"
-Type: "Branch"
-*/
-            if (selectedBranch) {
-                for (var branchName in branchesList) {
-                    if (branchName != selectedBranch) {
-                        continue;
+            if (extendsArgs) {
+                var branchesInfo = new Array();
+                var createData = function(dict, keys, index, callback) {
+                    var branchName = keys[index];
+                    if (keys.length == index) {
+                        callback('');
+                        return;
+                    }
+                    git.gitCommitCommand.geBranchCommitsByName(pathToRepo, branchName, function(err, commits) {
+                        if (err) {
+                            writeError(500, res, err);
+                            return;
+                        }
+                        commitsToJson(pathToRepo, repoName, commits, function(err, jsonCommit) {
+                            if (err) {
+                                writeError(500, res, err);
+                                return;
+                            }
+                            branchInfo = {
+                                "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+                                "Commit": jsonCommit,
+                                "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
+                                "Current": branchesList[branchName]['active'],
+                                "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                                "FullName": "refs/heads/" + branchName,
+                                "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                                "LocalTimeStamp": 1368125321000,
+                                "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+                                "Name": branchName,
+                                //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                                "RemoteLocation": [],
+                                "Type": "Branch"
+                            }
+                            //write(200, res, null, JSON.stringify(dataToResponse));
+                            branchesInfo.push(branchInfo);
+                            createData(dict, keys, index + 1, function(err) {
+                                if (err) {
+                                    callback(err);
+                                    return;
+                                }
+                                callback('');
+                                return;
+                            });
+                        });
+                    });
+                }
+                
+                var keys = new Array();
+                for (var key in branchesList) {
+                    keys.push(key);
+                }
+                createData(branchesList, keys, 0 , function(err) {
+
+                    if (err) {
+                        callback(err);
+                        return;
                     }
                     dataToResponse = {
-                        "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                        "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                        "Current": branchesList[branchName]['active'],
-                        "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
-                        "FullName": "refs/heads/" + branchName,
-                        "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                        "LocalTimeStamp": 1368125321000,
-                        "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
-                        "Name": branchName,
-                        //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
-                        "RemoteLocation": [],
+                        "Children": branchesInfo,
                         "Type": "Branch"
-                    }
-                    break;
-                }
+                    };
+                    write(200, res, null, JSON.stringify(dataToResponse));
+                });
             } else {
-                var branchesInfo = new Array();
-                for (var branchName in branchesList) {
-                    branchesInfo.push(
-                        {
+                if (selectedBranch) {
+                    for (var branchName in branchesList) {
+                        if (branchName != selectedBranch) {
+                            continue;
+                        }
+                        dataToResponse = {
                             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                             "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                             "Current": branchesList[branchName]['active'],
@@ -208,16 +240,37 @@ Type: "Branch"
                             "RemoteLocation": [],
                             "Type": "Branch"
                         }
-                    );
-                }
-                var dataToResponse = {
-                    "Children": branchesInfo,
-                    "Type": "Branch",
-                }
-            }           
+                        break;
+                    }
+                } else {
+                    var branchesInfo = new Array();
+                    for (var branchName in branchesList) {
+                        branchesInfo.push(
+                            {
+                                "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+                                "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
+                                "Current": branchesList[branchName]['active'],
+                                "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                                "FullName": "refs/heads/" + branchName,
+                                "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                                "LocalTimeStamp": 1368125321000,
+                                "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+                                "Name": branchName,
+                                //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                                "RemoteLocation": [],
+                                "Type": "Branch"
+                            }
+                        );
+                    }
+                    var dataToResponse = {
+                        "Children": branchesInfo,
+                        "Type": "Branch",
+                    }
+                }           
 
-            write(200, res, null, JSON.stringify(dataToResponse));
-            return;
+                write(200, res, null, JSON.stringify(dataToResponse));
+                return;
+            }
         });
 }
 
@@ -377,7 +430,7 @@ function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
                 }
                 var entry =  {
                                     'ChangeType': changeType,
-                                    'ContentLocation': '/file/' + repo + '/' + file,
+                                    'ContentLocation': '/file/' + repoName + '/' + file,
                                     'DiffLocation': diffLocation,
                                     'NewPath': file,
                                     'OldPath': OldPath,
@@ -528,7 +581,7 @@ function commitsToJson(repoPath, repoName, commits, callback)
                 });
 
 
-                var json = JSON.stringify( {    'Children' : entries, 
+                var json = /*JSON.stringify( */{    'Children' : entries, 
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName,
                                                 'Location': "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
                                                 'RepositoryPath': '',
@@ -547,7 +600,7 @@ function commitsToJson(repoPath, repoName, commits, callback)
                                                         "Type": "Branch"
                                                     }
                                             
-                                            } );
+                                            } 
                 
                 callback(null, json);
             }
@@ -577,7 +630,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             }
             else
             {
-                write(200, res, null, json);
+                write(200, res, null, JSON.stringify(json));
             }
         });
 
@@ -997,12 +1050,15 @@ function postBranch(res, rest, dataJson, workspaceDir) {
         }
         var dataToResponse = {
             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-            "CommitLocation": "/gitapi/commit/" + branchName + "/file/" + repoName + "/",
+            "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
             "Current": false,
+            "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+            "FullName": "refs/heads/" + branchName,
             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+            "LocalTimeStamp": 1368125321000,
             "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
             "Name": branchName,
-            "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName +  "/",
+            "RemoteLocation": [],
             "Type": "Branch"
         }
         write(201, res, null, JSON.stringify(dataToResponse));
