@@ -595,7 +595,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     var restWords = rest.split("/");
 
 
-    var refsPrefix = 'refs%252heads%252';
+    var refsPrefix = 'refs%252Fheads%252F';
 
     if (restWords[1] === '_')
     {
