@@ -176,12 +176,16 @@ Type: "Branch"
                     }
                     dataToResponse = {
                         "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                        "CommitLocation": "/gitapi/commit/refs%252heads%252" + branchName + "/file/" + repoName + "/",
+                        "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                         "Current": branchesList[branchName]['active'],
+                        "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                        "FullName": "refs/heads/" + branchName,
                         "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                        "LocalTimeStamp": 1368125321000,
                         "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                         "Name": branchName,
-                        "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                        //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                        "RemoteLocation": [],
                         "Type": "Branch"
                     }
                     break;
@@ -192,18 +196,23 @@ Type: "Branch"
                     branchesInfo.push(
                         {
                             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                            "CommitLocation": "/gitapi/commit/refs%252heads%252" + branchName + "/file/" + repoName + "/",
+                            "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                             "Current": branchesList[branchName]['active'],
+                            "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                            "FullName": "refs/heads/" + branchName,
                             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                            "LocalTimeStamp": 1368125321000,
                             "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                             "Name": branchName,
-                            "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                            //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                            "RemoteLocation": [],
                             "Type": "Branch"
                         }
                     );
                 }
                 var dataToResponse = {
-                    "Children": branchesInfo
+                    "Children": branchesInfo,
+                    "Type": "Branch",
                 }
             }           
 
