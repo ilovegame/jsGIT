@@ -648,7 +648,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     var restWords = rest.split("/");
 
 
-    var refsPrefix = 'refs%252heads%252';
+    var refsPrefix = 'refs%252Fheads%252F';
 
     if (restWords[1] === '_')
     {
@@ -958,47 +958,59 @@ function getRemote(res, rest, dataJson, workspaceDir) {
     }
 }
 
-
-//TODO not finished
 function getStatus(res, rest, dataJson, workspaceDir) {
+    var repoName = path.basename(decodeURIComponent(rest));
+    repo = path.join(repoName, '.git');
+    var repoPath = path.join(workspaceDir, repo);
+    console.log('XrepopathX ' + repoPath);
+    git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
+        if(err) {
+            console.log(err);
             write(500, res, 'Cannot get repostory status');
-
-/*
-Added: []
-Changed: []
-CloneLocation: "/gitapi/clone/file/msabat/test2/"
-CommitLocation: "/gitapi/commit/HEAD/file/msabat/test2/"
-Conflicting: []
-IndexLocation: "/gitapi/index/file/msabat/test2/"
-Location: "/gitapi/status/file/msabat/test2/"
-Missing: []
-Modified: []
-Removed: []
-RepositoryState: "SAFE"
-Type: "Status"
-Untracked: []
-
-{
- "Added": [],
- "Changed": [],
- "CommitLocation": "http://localhost:8080/git/commit/HEAD/file/E/",
- "Conflicting": [],
- "IndexLocation": "http://localhost:8080/git/index/file/E/",
- "Missing": [],
- "Modified": [{
-   "Git": {
-     "CommitLocation": "http://localhost:8080/git/commit/HEAD/file/E/a.txt",
-     "DiffLocation": "http://localhost:8080/git/diff/Default/file/E/a.txt",
-     "IndexLocation": "http://localhost:8080/git/index/file/E/a.txt"
-   },
-   "Location": "http://localhost:8080/file/E/a.txt",
-   "Name": "a.txt",
-   "Path": "a.txt"
- }],
- "Removed": [],
- "Untracked": []
- }
-*/
+        } else {
+            var entry = {
+                // 'BranchLocation': '/gitapi/branch/file/' + repository + '/', 
+                'Added': [],
+                'Changed': [],
+                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                'CommitLocation': '/gitapi/commit/HEAD/file/' + repoName + '/',
+                'Conflicting': [],
+                'IndexLocation': '/gitapi/index/file/' + repoName + '/',
+                'Location': '/gitapi/status/file/' + repoName + '/',
+                'Missing': [],
+                'Modified': [],
+                'Removed': [],
+                'RepositoryState': "SAFE",
+                'Type': "Status",
+                'Untracked': []
+            }
+            console.log(result);
+            var helperFunction = function(arr, key) {
+                for(var i = 0; i < arr.length; ++i) {
+                    var val = {
+                        'Git': {
+                            'CommitLocation' : '/gitapi/commit/HEAD/file/' + repoName + '/' + arr[i],
+                            'DiffLocation' : '/gitapi/diff/Default/file/' + repoName + '/' + arr[i],
+                            'IndexLocation' : '/gitapi/index/file/' + repoName + '/' + arr[i],
+                        },
+                        'Location' : '/file/' + repoName + '/' + arr[i],
+                        'Name' : arr[i],
+                        'Path' : arr[i]
+                    };
+                    entry[key].push(val);
+                }
+            }
+            helperFunction(result.modified, 'Removed');
+            helperFunction(result.added, 'Added');
+            helperFunction(result.modified, 'Modified');
+            helperFunction(result.changed, 'Changed');
+            helperFunction(result.missing, 'Missing');
+            helperFunction(result.untracked, 'Untracked');
+            //helperFunction(result.conflicts', 'Conflicting');  TODO after merge cherrypick
+            var json = JSON.stringify( entry );
+            write(200, res, null, json);
+        }
+    });
 }
 
 function getTag(res, rest, dataJson, workspaceDir) {
