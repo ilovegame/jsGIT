@@ -179,7 +179,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                                 "Commit": jsonCommit,
                                 "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                                "Current": branchesList[branchName]['active'],
+                                "Current": (branchName === 'master'), // branchesList[branchName]['active'],
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
@@ -229,7 +229,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                         dataToResponse = {
                             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                             "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                            "Current": branchesList[branchName]['active'],
+                            "Current": (branchName === 'master'), //branchesList[branchName]['active'],
                             "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                             "FullName": "refs/heads/" + branchName,
                             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
@@ -249,7 +249,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                             {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                                 "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                                "Current": branchesList[branchName]['active'],
+                                "Current": (branchName === 'master'), // branchesList[branchName]['active'],
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
