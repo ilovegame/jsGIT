@@ -962,7 +962,6 @@ function getStatus(res, rest, dataJson, workspaceDir) {
     var repoName = path.basename(decodeURIComponent(rest));
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    console.log('XrepopathX ' + repoPath);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
         if(err) {
             console.log(err);
@@ -984,7 +983,6 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                 'Type': "Status",
                 'Untracked': []
             }
-            console.log(result);
             var helperFunction = function(arr, key) {
                 for(var i = 0; i < arr.length; ++i) {
                     var val = {
@@ -1008,6 +1006,7 @@ function getStatus(res, rest, dataJson, workspaceDir) {
             helperFunction(result.untracked, 'Untracked');
             //helperFunction(result.conflicts', 'Conflicting');  TODO after merge cherrypick
             var json = JSON.stringify( entry );
+            
             write(200, res, null, json);
         }
     });
@@ -1091,18 +1090,13 @@ function postClone(res, rest, dataJson, workspaceDir) {
                     commitInfo.authorMail = 'x';
                     commitInfo.committer = 'x';
                     commitInfo.committerMail = 'x';
-                    console.log('dzialasz?');
                     git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
-                        console.log('oo6');
                         if (err) {
                             console.log(err);
                             writeError(500, res, 'Error occured. Cannot make empty commit dir');
                             return;
                         }
-                        console.log('oo4');
-                        console.log(dataJson['Name']);
                         var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
-                        console.log('oo5');
                         write(201, res, null, resJson);
                     });
                 }
