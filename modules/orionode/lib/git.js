@@ -334,17 +334,17 @@ function getClone(res, rest, dataJson, workspaceDir) {
 
 //TODO!!!!
  //TODO sha1 should be in tags
-function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
+function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
 {
         var entries = [ ];
         tags.forEach(function (tag) {
             var entry = {
                     'CloneLocation': '/gitapi/clone/file/' + repoName,
-                    'CommitLocation': '/gitapi/commit/' + sha1 + '/file/' + repoName,
-                    'FullName' : 'refs/tags/' + tag,
+                    'CommitLocation': '/gitapi/commit/' + tag['commit_SHA_1'] + '/file/' + repoName,
+                    'FullName' : 'refs/tags/' + tag.name,
                     "LocalTimeStamp": 1365600727000,
-                    'Location': '/gitapi/tag/' + tag + '/file/' + repoName,
-                    'Name': tag,
+                    'Location': '/gitapi/tag/' + tag.name + '/file/' + repoName,
+                    'Name': tag.name,
                     'TagType': 'ANNOTATED',
                     'Type': 'Tag'
             };
@@ -494,18 +494,16 @@ function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
                     var selectedTags = [];
                     console.log("!!!");
                     console.log(tags);
-                    /*
+                    
                     tags.forEach(function(tag) {
-                        if (tag.objectId === commit.sha1)
+                        if (tag['commit_SHA_1'] === commit.sha1)
                         {
                             selectedTags.push(tag);
                         }
                     });
-                    */
-                    //commit.tags = selectedTags;
-                    commit.tags = tags;
-                    console.log("tags:");
-                    console.log(commit.tags);
+                    
+                    commit.tags = selectedTags;
+
                     //callback(null, commits[i]);
                     
                    
@@ -573,7 +571,7 @@ function commitsToJson(repoPath, repoName, commits, callback)
                             'Message': commit.description,
                             'Name': commit.sha1,
                             'Parents': parents,
-                            'Tags': tagsToJson(commit.tags, commit.sha1, repoName),
+                            'Tags': tagsToJson(commit.tags, repoName),
                             'Time': 1000*parseInt(commit.author.timestamp), // why ?
                             'Type': 'Commit'
                             };
@@ -1025,7 +1023,7 @@ function getTag(res, rest, dataJson, workspaceDir) {
         }
         var dataToResponse;
         
-        var tagsToResponse = tagsToJson(tags, '', repoName);
+        var tagsToResponse = tagsToJson(tags, repoName);
         
         dataToResponse = {
             "Children": tagsToResponse,
