@@ -67,14 +67,11 @@ module.exports = function(options) {
 	.use(resource(fileRoot, {
 		GET: function(req, res, next, rest) {
 			var handler = getHandlers;
-            //console.log(rest);
-            //console.log(req);
+
             lastReqPath = req.path;
-            //console.log("LAST REQ PATH");
-            //console.log(lastReqPath);
-            //console.log(req._parsedUrl);
+
             lastReqPath = req._parsedUrl;
-            //throw 'ss';
+
 			doJob(handler, rest, req, res, workspaceDir);
 		},
 
@@ -92,15 +89,6 @@ module.exports = function(options) {
 			var handler = putHandlers;
 			doJob(handler, rest, req, res, workspaceDir);
 		},
-        OPTIONS: function(req, res, next, rest) {
-            //var handler = putHandlers;
-            //doJob(handler, rest, req, res, workspaceDir);
-            console.log('helol!');
-            var handler = getHandlers;
-            console.log("GET:");
-            console.log(rest);
-            doJob(handler, rest, req, res, workspaceDir);
-        },
 	}));
 };
 
@@ -167,7 +155,20 @@ function getBranch(res, rest, dataJson, workspaceDir) {
             }
 
             var dataToResponse;
-
+/*
+CloneLocation: "/gitapi/clone/file/msabat/test/"
+CommitLocation: "/gitapi/commit/refs%252Fheads%252Fdev/file/msabat/test/"
+Current: false
+DiffLocation: "/gitapi/diff/dev/file/msabat/test/"
+FullName: "refs/heads/dev"
+HeadLocation: "/gitapi/commit/HEAD/file/msabat/test/"
+LocalTimeStamp: 1365600727000
+Location: "/gitapi/branch/dev/file/msabat/test/"
+Name: "dev"
+RemoteLocation: []
+Type: "Branch"
+Type: "Branch"
+*/
             if (selectedBranch) {
                 for (var branchName in branchesList) {
                     if (branchName != selectedBranch) {
@@ -175,12 +176,16 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                     }
                     dataToResponse = {
                         "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                        "CommitLocation": "/gitapi/commit/refs%252heads%252" + branchName + "/file/" + repoName + "/",
+                        "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                         "Current": branchesList[branchName]['active'],
+                        "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                        "FullName": "refs/heads/" + branchName,
                         "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                        "LocalTimeStamp": 1368125321000,
                         "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                         "Name": branchName,
-                        "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                        //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                        "RemoteLocation": [],
                         "Type": "Branch"
                     }
                     break;
@@ -191,21 +196,25 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                     branchesInfo.push(
                         {
                             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                            "CommitLocation": "/gitapi/commit/refs%252heads%252" + branchName + "/file/" + repoName + "/",
+                            "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                             "Current": branchesList[branchName]['active'],
+                            "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                            "FullName": "refs/heads/" + branchName,
                             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                            "LocalTimeStamp": 1368125321000,
                             "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                             "Name": branchName,
-                            "RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                            //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                            "RemoteLocation": [],
                             "Type": "Branch"
                         }
                     );
                 }
                 var dataToResponse = {
-                    "Children": branchesInfo
+                    "Children": branchesInfo,
+                    "Type": "Branch",
                 }
-            }
-            
+            }           
 
             write(200, res, null, JSON.stringify(dataToResponse));
             return;
@@ -270,22 +279,39 @@ function getClone(res, rest, dataJson, workspaceDir) {
     });
 }
 
-function getCommit(res, rest, dataJson, workspaceDir) {
-    var repoName;
-    var repoPath;
+//TODO!!!!
+ //TODO sha1 should be in tags
+function tagsToJson(tags, sha1, repoName) //sha1 - tagged commit sha1
+{
+        var entries = [ ];
+        tags.forEach(function (tag) {
+            var entry = {
+                    'CloneLocation': '/gitapi/clone/file/' + repoName,
+                    'CommitLocation': '/gitapi/commit/' + sha1 + '/file/' + repoName,
+                    'FullName' : 'refs/tags/' + tag,
+                    "LocalTimeStamp": 1365600727000,
+                    'Location': '/gitapi/tag/' + tag + '/file/' + repoName,
+                    'Name': tag,
+                    'TagType': 'ANNOTATED',
+                    'Type': 'Tag'
+            };
+            entries.push(entry);
+        });
 
-    repoName= path.basename(rest);
-    repo = path.join(repoName, '.git');
-    repoPath= path.join(workspaceDir, repo);
+        return entries;
+}
 
-     function getParents(parents)
+
+
+/////////////////////////////////////////////////////////////////////
+     function getParents(repoName, parents)
      {
          var entries = [ ];
 
          parents.forEach(function (parent) {
              var entry = {
-                       "Location": "/gitapi/commit/" + parent + "/file/" + repoName,
-                       "Name": parent
+                       'Location': '/gitapi/commit/' + parent + '/file/' + repoName,
+                       'Name': parent
              };
              entries.push(entry);
          });
@@ -299,7 +325,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
          //console.log(parents);{"FullName": "refs/heads/dev"},
          branches.forEach(function (branch) {
              var entry = {
-                       "FullName": "refs/heads/" + branch
+                       'FullName': 'refs/heads/' + branch
              };
              entries.push(entry);
          });
@@ -307,7 +333,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
          return entries;
      }
      
-     function getDiffs(commit)
+     function getDiffs(repoName, commit)
      {
          var entries = [ ];
          //console.log(parents);{"FullName": "refs/heads/dev"},
@@ -316,29 +342,17 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 var OldPath;
                 var diffLocation;
                 var modified = true;
-                console.log("aaaaaaaaaaa: " + repoName);
+
                 if (commit.parents.length == 0)
                 {
                     OldPath = '/dev/null';
-                    diffLocation = "/gitapi/diff/" + commit.sha1 + "/file/" + repoName +  file;
+                    diffLocation = '/gitapi/diff/' + commit.sha1 + '/file/' + repoName +  file;
                 }
                 else
                 {
-                    // https://orionhub.org/gitapi/diff/5329cb1882c503ea7faf0c0d1650f4d9eda59532..fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/New%20File?parts=uris
                     OldPath = file;
-                    diffLocation = "/gitapi/diff/" + commit.parents[0] + ".." + commit.sha1 + "/file/" + repoName + file;
+                    diffLocation = '/gitapi/diff/' + commit.parents[0] + '..' + commit.sha1 + '/file/' + repoName + file;
 
-    // "DiffLocation": "/gitapi/diff/fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/",
-    // "DiffLocation": "/gitapi/diff/5329cb1882c503ea7faf0c0d1650f4d9eda59532..fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/New%20File",
-
-// moje:
-// DiffLocation: "/gitapi/diff/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/"
-// DiffLocation: "/gitapi/diff/7d8a8042d1b3a1e815a9e93366918864e1444c99..d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/2.txt"
-
-// moje : 
-// "http://localhost:8081/gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt"
-// ich:
-// https://orionhub.org/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi?parts=uris
                 }
                 var changeType;
                 if (diff.length === 1)
@@ -359,32 +373,27 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 }
                 else
                 {
-                       changeType = "MODIFY";
+                       changeType = 'MODIFY';
                 }
                 var entry =  {
-                                    "ChangeType": changeType,
-                                    "ContentLocation": "/file/" + repo + "/" + file,
-                                    "DiffLocation": diffLocation,
-                                    //"DiffLocation" : "http://localhost:8081/gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt",
-                                    //"DiffLocation": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/test/drugi",
-                                    "NewPath": file,
-                                    "OldPath": OldPath,
-                                    "Type": "Diff"
+                                    'ChangeType': changeType,
+                                    'ContentLocation': '/file/' + repo + '/' + file,
+                                    'DiffLocation': diffLocation,
+                                    'NewPath': file,
+                                    'OldPath': OldPath,
+                                    'Type': 'Diff'
                             };
                 if (modified)
                 {
                     entries.push(entry);
                 }
             }
-         //console.log(entries);
          return entries;
      }
      
     // callback - function(err, extended commit)
     function getCommitsDetails(repoPath, commits, i, callback)
     {
-            // getCommitBranches
-            //var i = 0;
             if (i === commits.length)
             {
                 callback(null, []);
@@ -413,9 +422,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 });
             
             }
-
-        // get diffs
-        // get tags
     }
 
     // callback(err, []
@@ -429,60 +435,76 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             else
             {
                 commit.branches = branches
-                /*
+                //TODO
+                
                 git.gitTagCommand.getTagNames(repoPath, function(err, tags) {
                     var selectedTags = [];
                     console.log("!!!");
                     console.log(tags);
+                    /*
                     tags.forEach(function(tag) {
                         if (tag.objectId === commit.sha1)
                         {
                             selectedTags.push(tag);
                         }
                     });
-                    commit.tags = selectedTags;
+                    */
+                    //commit.tags = selectedTags;
+                    commit.tags = tags;
                     console.log("tags:");
                     console.log(commit.tags);
                     //callback(null, commits[i]);
-                    callback(null, commit);
+                    
+                   
+                    
+                    if (commit.parents.length === 0)
+                    {
+                        git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+
+                            commit.diffs = diffs;
+                            callback(null, commit);
+                        }, null);
+                    }
+                    else
+                    {
+                        //TODO, multiple parents
+                        git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
+
+                            commit.diffs = diffs;
+                            callback(null, commit);
+                        }, null);
+                    }
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 });
-                */
-                if (commit.parents.length === 0)
-                {
-                    git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+                
 
-                        commit.diffs = diffs;
-                        callback(null, commit);
-                    }, null);
-                }
-                else
-                {
-                    //TODO, multiple parents
-                    git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
-
-                        commit.diffs = diffs;
-                        callback(null, commit);
-                    }, null);
-                }
             }
         });
     }
-
-    function sendResponse(commits)
-    {
-        
+    
+function commitsToJson(repoPath, repoName, commits, callback)
+{
         getCommitsDetails(repoPath, commits, 0, function(err, extendedCommits) {
 
             if (err)
             {
-                
+                callback(err, null);
             }
             else
             {
                 var entries = [ ];
                 extendedCommits.forEach(function (commit) {
                     //console.log(parseInt(commit.author.timestamp));
-                    var parents = getParents(commit.parents);
+                    var parents = getParents(repoName, commit.parents);
                     var entry =     {
                             'AuthorEmail': commit.author.authorMail,
                             'AuthorImage': 'http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm',
@@ -492,25 +514,13 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                             'CommitterEmail': commit.committer.authorMail,
                             'CommitterName': commit.committer.author,
                             'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName,
-                            'Diffs' : getDiffs(commit),
+                            'Diffs' : getDiffs(repoName, commit),
 
                             'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName,
                             'Message': commit.description,
                             'Name': commit.sha1,
                             'Parents': parents,
-                            "Tags": [],
-                            /*
-                             *     "Tags": [{
-      "CloneLocation": "/gitapi/clone/file/msabat/test/",
-      "CommitLocation": "/gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/",
-      "FullName": "refs/tags/taki_tam_tag",
-      "LocalTimeStamp": 1365600727000,
-      "Location": "/gitapi/tag/taki_tam_tag/file/msabat/test/",
-      "Name": "taki_tam_tag",
-      "TagType": "ANNOTATED",
-      "Type": "Tag"
-    }],
-    */
+                            'Tags': tagsToJson(commit.tags, commit.sha1, repoName),
                             'Time': 1000*parseInt(commit.author.timestamp), // why ?
                             'Type': 'Commit'
                             };
@@ -538,47 +548,65 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                                                     }
                                             
                                             } );
-                write(200, res, null, json);
                 
+                callback(null, json);
             }
             
             
         });
+    
+}
+
+function getCommit(res, rest, dataJson, workspaceDir) {
+    var repoName;
+    var repoPath;
+
+    repoName= path.basename(rest);
+    repo = path.join(repoName, '.git');
+    repoPath= path.join(workspaceDir, repo);
+
+
+
+
+    function sendResponse(commits)
+    {
+        commitsToJson(repoPath, repoName, commits, function(err, json) {
+            if (err)
+            {
+                write(500, res, 'Cannot get repostory list');
+            }
+            else
+            {
+                write(200, res, null, json);
+            }
+        });
+
         
         
 
     }
-//writeError(500, res, err);
-    // opcja 1 : /gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
-    // opcja 2 : /gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/",
-    // opcja 3 : /gitapi/commit/HEAD/file/msabat/test
-    // opcja 4 : /gitapi/commit/file/msabat/test/
-    // opcja 5: /gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/New%20File?parts=body
 
-    //TODO:
-    // opcja 6 : /gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body
+    //  1 : /gitapi/commit/refs%252Fheads%252Fmaster/file/test/",
+    //  2 : /gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/test/",
+    //  3 : /gitapi/commit/HEAD/file/test
+    //  4 : /gitapi/commit/file/test/
+    //  5: /gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/test/file.txt?parts=body
+
     var restWords = rest.split("/");
 
 
     var refsPrefix = 'refs%252heads%252';
-    
-    /*
-         repoName= path.basename(rest);
-    repo = path.join(repoName, '.git');
-    
-    repoPath= path.join(workspaceDir, repo);
-    */
-    // getCommitBranches
+
     if (restWords[1] === '_')
     {
         write(200, res, null, '');
     }
-    else if (restWords[1] === 'file') //TODO
+    else if (restWords[1] === 'file') //TODO ?
     {
 
         //getHeadCommits(repoPath, callback)
     }
-    else if (restWords[1] === 'HEAD') //TODO
+    else if (restWords[1] === 'HEAD') //TODO ?
     {
 
         //getHeadCommits(repoPath, callback)
@@ -595,8 +623,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             }
             else
             {
-                //console.log(commits);
-                //sendResponse(commits.reverse());
                 //TODO sort by timestamp
                 sendResponse(commits);
             }
@@ -606,10 +632,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     {
         var sha1 = restWords[1];
         
-        console.log("zzzzzzzzzzzzzzzzz");
-        console.log(restWords.length);
-        //if (restWords.length === 5) 
-        console.log(lastReqPath.query);
         if (lastReqPath.query !== "parts=body")
         {
         
@@ -620,8 +642,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 }
                 else
                 {
-
-                    //console.log(commits);
                     sendResponse([commit]);
                 }
             });
@@ -629,15 +649,11 @@ function getCommit(res, rest, dataJson, workspaceDir) {
         else
         {
             repoName = path.basename(path.dirname(rest));
-            console.log("repoName");
-            console.log(repoName);
+
             var file = path.basename(rest);
             repo = path.join(repoName, '.git');
             repoPath= path.join(workspaceDir, repo);
             
-            console.log(file);
-            console.log(repoName);
-            console.log("WEZ PLIK Z COMMITA");
             git.gitCommitCommand.getFileFromCommit(repoPath, sha1, file, function(err, fileContent) {
                 if (err)
                 {
@@ -646,97 +662,180 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 else
                 {
 
-                    //console.log(commits);
-                    //sendResponse([commit]);
-                    console.log("file content");
-                    console.log(fileContent);
-                      //var temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
-                      var temp = "hyhy";
-                write(200, res, null, fileContent);
-                    //write(200, res, fileContent);
+                    write(200, res, null, fileContent);
                 }
             });
         }
     }
-            
-
-        
-    
-   
 }
 
 function getConfig(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/config/core.filemode/clone/file/re/
+// /gitapi/config/clone/file/re/
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    function sendResponse (entries)
+    {
+        var json = JSON.stringify( {    'Children' : entries, 
+                                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                        'Location': '/gitapi/config/clone/file/' + repoName,
+                                        'Type': 'Config'
+                                    
+                                    } );
+        write(200, res, null, json);
+    }
+
+
+    if (rest.split('/').length === 5)
+    {
+        git.gitConfigCommand.getOptions (repoPath, function(err, options) {
+            if (err)
+            {
+                write(500, res, 'Error occured');
+            }
+            else
+            {
+                var entries = [];
+                for (var key in options) 
+                {
+                    var entry = {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': key,
+                        'Location': '/gitapi/config/' + key + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': options[key]
+                    };
+                    entries.push(entry);
+                }
+                sendResponse(entries);
+            }
+        });
+    }
+    else
+    {
+        var variableName = rest.split('/')[1];
+        git.gitConfigCommand.getOption (repoPath, function(err, value) {
+            if (err)
+            {
+                write(500, res, 'Error occured');
+            }
+            else
+            {
+                var entry = {
+                    'CloneLocation': '/gitapi/clone/file/' + repoName,
+                    'Key': variableName,
+                    'Location': '/gitapi/config/' + variableName + '/clone/file/' + repoName,
+                    'Type': 'Config',
+                    'Value': value
+                };
+
+                sendResponse([entry]);
+            }
+        });
+    }
 }
 function getDiff(res, rest, dataJson, workspaceDir) {
-    // comm1_sha1..comm2_sha1/file/reponame/filename
-    // /gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt?parts=diff
-    var splittedRest = rest.split('/');
-        var uris = "parts=uris";
-        var repoName = path.basename(splittedRest[3]);
-        var repo = path.join(repoName, '.git');
-        var repoPath = path.join(workspaceDir, repo);
-        var file = splittedRest[4];
-    // function getDiffCommit (repoPath, newCommitSha1, callback, relativeFilePath)
     
-    if (splittedRest[1].length === 40) // /gitapi/diff/fe37e9c598e60df58904707be8d51094b250f4a6/file/msabat/test/
+    
+    // /gitapi/diff/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/,
+    // /gitapi/diff/7fc8cf2731d665ffdedd1eebcc182a33a4334f99..e117d0e3fd17e1ce93b47d37ab89c404c3de9e51/file/re/2.txt?parts=diff
+    // /gitapi/diff/Default/file/test/NewFile?parts=uris
+    // /gitapi/diff/Default/file/test/anotherFile.txt?parts=uris
+    var splittedRest = rest.split('/');
+    var uris = 'parts=uris';
+    var repoName = path.basename(splittedRest[3]);
+    var repo = path.join(repoName, '.git');
+    var repoPath = path.join(workspaceDir, repo);
+    var file = splittedRest[4];
+
+    
+    if (splittedRest[1] === 'Default') //TODO: test when status is done
     {
-        var sha1 = splittedRest[1];
+        // Getting a diff between working tree and index 
         if (lastReqPath.query === uris)
         {
-            console.log("uuuuuuuuuuuuuuuuuuuuuuuuuuuris");
+                /*
+    Base: "/gitapi/index/file/msabat/test/anotherFile.txt"
+    CloneLocation: "/gitapi/clone/file/msabat/test/"
+    Location: "/gitapi/diff/Default/file/msabat/test/anotherFile.txt"
+    New: "/file/msabat/test/anotherFile.txt"
+    Old: "/gitapi/index/file/msabat/test/anotherFile.txt"
+    Type: "Diff"
+                */
                 var json = JSON.stringify( {    
-                                                "Base": "/gitapi/commit/" + sha1 + "/file/" + repoName + "/" + file + "parts=body", //TODO or newSha1 ?
+                                                'Base': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName,
-                                                'Location': '/gitapi/diff/' + sha1 + '/file/' + repoName + '/' + file,
-                                                'New': '/gitapi/commit/' + sha1 + '/file/' + repoName + '/' + file + '?parts=body',
-                                                'Old': '/gitapi/commit/_/file/' + repoName + '/' + file + '?parts=body',
-                                                //'Old': '/dev/null',
+                                                'Location': '/gitapi/diff/Default/file' + repoName + '/' + file,
+                                                'New': '/file/' + repoName + '/' + file,
+                                                'Old': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'Type': 'Diff'
                                             } );
                 write(200, res, null, json);
         }
-        else
+        else if (lastReqPath.query === 'parts=diff')
         {
-
-
-        //if uris
-            git.gitDiffCommand.getDiffCommit(repoPath, sha1, function(err, diffs) {
-
-                console.log(err);
-                //callback(null, commit);
-                console.log(diffs);
-                var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
-                console.log(temp);
-                
-                //temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
-                
-                write(200, res, null, temp);
+            git.gitDiffCommand.getDiffWorkingTreeAndIndex(repoPath, function(err, diffs) {
+                if (err)
+                {
+                    write(500, res, 'Cannot get diff');
+                }
+                else
+                {
+                    var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                    write(200, res, null, temp);
+                }
             }, file);
         }
     }
+    else if (splittedRest[1].length === 40) // 
+    {
+        
+        var sha1 = splittedRest[1];
+        if (lastReqPath.query === uris)
+        {
+                var json = JSON.stringify( {    
+                                                'Base': '/gitapi/commit/' + sha1 + '/file/' + repoName + '/' + file + 'parts=body',
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
+                                                'Location': '/gitapi/diff/' + sha1 + '/file/' + repoName + '/' + file,
+                                                'New': '/gitapi/commit/' + sha1 + '/file/' + repoName + '/' + file + '?parts=body',
+                                                'Old': '/gitapi/commit/_/file/' + repoName + '/' + file + '?parts=body',
+                                                'Type': 'Diff'
+                                            } );
+                write(200, res, null, json);
+        }
+        else if (lastReqPath.query === 'parts=diff')
+        {
+            if (splittedRest[splittedRest.length-1] === '')
+            {
+                write(200, res, null, 'test'); //TODO
+            }
+            else
+            {
+                    git.gitDiffCommand.getDiffCommit(repoPath, sha1, function(err, diffs) {
+                        if (err)
+                        {
+                            write(500, res, 'Cannot get diff');
+                        }
+                        else
+                        {
+                            var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                            write(200, res, null, temp);
+                        }
+                    }, file);
+            }
+        }
+
+    }
     else
     {
-/*       
-{
-  "Base": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body",
-  "CloneLocation": "/gitapi/clone/file/msabat/test/",
-  "Location": "/gitapi/diff/67c56cc33d137af40605cc628785441ddc76c724..5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi",
-  "New": "/gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/msabat/test/drugi?parts=body",
-  "Old": "/gitapi/commit/67c56cc33d137af40605cc628785441ddc76c724/file/msabat/test/drugi?parts=body",
-  "Type": "Diff"
-}
-*/  
-        
-
         var sha1 = splittedRest[1].split('..');
         var newSha1 = sha1[1];
         var oldSha1 = sha1[0];
         if (lastReqPath.query === uris)
         {
-            console.log("uuuuuuuuuuuuuuuuuuuuuuuuuuuris");
                 var json = JSON.stringify( {    
-                                                "Base": "/gitapi/commit/" + oldSha1 + "/file/" + repoName + "/" + file + "parts=body", //TODO or newSha1 ?
+                                                'Base': '/gitapi/commit/' + oldSha1 + '/file/' + repoName + '/' + file + 'parts=body', //TODO or newSha1 ?
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName,
                                                 'Location': '/gitapi/diff/' + oldSha1 + '..' + newSha1 + '/file/' + repoName + '/' + file,
                                                 'New': '/gitapi/commit/' + newSha1 + '/file/' + repoName + '/' + file + '?parts=body',
@@ -747,31 +846,21 @@ function getDiff(res, rest, dataJson, workspaceDir) {
         }
         else
         {
-            console.log('diffff');
-
-            //splittedRest[2] - "file"
-
-            
-            
-            //console.log(file);
             git.gitDiffCommand.getDiffCommitCommit(repoPath, oldSha1, newSha1, function(err, diffs) {
-
-                console.log(err);
-                //callback(null, commit);
-                console.log(diffs);
-                var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
-                console.log(temp);
-                
-                //temp = "diff --git a/New File b/New File\nindex 06498fb..ae10ccb 100644\n--- a/New File\n+++ b/New File\n@@ -1 +1,4 @@\n-treść\n\\ No newline at end of file\n+treść\n+coś dodane\n+\n+modyfikacja dla trzeciego commita\n\\ No newline at end of file\n";
-                
-                write(200, res, null, temp);
+                if (err)
+                {
+                    write(500, res, 'Cannot get diff');
+                    
+                }
+                else
+                {
+                    var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
+                    write(200, res, null, temp);
+                }
             }, file);
         }
 
     }
-    
-    
-   
 
 }
 
@@ -882,17 +971,12 @@ function getTag(res, rest, dataJson, workspaceDir) {
             return;
         }
         var dataToResponse;
-        var tagsToResponse = new Array();
-        for (var tagIndex in tags) {
-            tagsToResponse.push(
-                {
-                    "FullName": "refs/tags/" + tags[tagIndex],
-                    "Name": tags[tagIndex]
-                }
-            );
-        }
+        
+        var tagsToResponse = tagsToJson(tags, '', repoName);
+        
         dataToResponse = {
-            "Children": tagsToResponse
+            "Children": tagsToResponse,
+            'Type' : 'Tag'
         }
 
         write(200, res, null, JSON.stringify(dataToResponse));
@@ -960,7 +1044,30 @@ function postCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function postConfig(res, rest, dataJson, workspaceDir) {
-	
+
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+
+    git.gitConfigCommand.addOption (repoPath, dataJson['Key'], dataJson['Value'], function(err) {
+        if (err)
+        {
+            write(500, res, 'Error occured');
+        }
+        else
+        {
+            var json = JSON.stringify( {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': dataJson['key'],
+                        'Location': '/gitapi/config/' + dataJson['key'] + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': dataJson['value']
+                    } );
+        write(200, res, null, json);
+        }
+        
+    });
+
 }
 function postDiff(res, rest, dataJson, workspaceDir) {
 	
@@ -979,7 +1086,7 @@ function postStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function postTag(res, rest, dataJson, workspaceDir) {
-	
+    //probably not used. can't find link in UI with that action
 }
 
 function putBranch(res, rest, dataJson, workspaceDir) {
@@ -991,11 +1098,45 @@ function putClone(res, rest, dataJson, workspaceDir) {
 }
 
 function putCommit(res, rest, dataJson, workspaceDir) {
-	
+    // /gitapi/commit/d7dcce969a69721d3cd7469191bf1e79f0e2dce5/file/re/
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var splittedRest = rest.split('/');
+    var sha1 = splittedRest[1];
+    var author = 'A';
+    var authorMail = 'B';
+    var description = 'C';
+    git.gitTagCommand.addTag (repoPath, author, authorMail, dataJson['Name'], description, sha1, function(err) {
+        
+        write(200, res, null, '');
+    });
+    
 }
 
 function putConfig(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/config/core.filemode/clone/file/test/
+
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var key = rest.split('/')[1];
+    git.gitConfigCommand.updateOption (repoPath, key, dataJson['Value'], function(err) {
+        if (err)
+        {
+            write(500, res, 'Error occured');
+        }
+        else
+        {
+            var json = JSON.stringify( {
+                        'CloneLocation': '/gitapi/clone/file/' + repoName,
+                        'Key': key,
+                        'Location': '/gitapi/config/' + key + '/clone/file/' + repoName,
+                        'Type': 'Config',
+                        'Value': dataJson['value']
+                    } );
+            write(200, res, null, json);
+        }
+        
+    });
 }
 function putDiff(res, rest, dataJson, workspaceDir) {
 	
@@ -1014,7 +1155,7 @@ function putStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function putTag(res, rest, dataJson, workspaceDir) {
-	
+    //probably not used. can't find link in UI with that action
 }
 
 function deleteBranch(res, rest, dataJson, workspaceDir) {
@@ -1044,7 +1185,22 @@ function deleteCommit(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteConfig(res, rest, dataJson, workspaceDir) {
-	
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var key = rest.split('/')[1];
+
+    git.gitConfigCommand.removeOption (repoPath, key, function(err) {
+        if (err)
+        {
+            
+        }
+        else
+        {
+            write(200, res, null, '');
+        }
+        
+    });
+
 }
 function deleteDiff(res, rest, dataJson, workspaceDir) {
 	
@@ -1063,5 +1219,19 @@ function deleteStatus(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteTag(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/tag/tag1/file/test
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var tagName = rest.split('/')[1];
+    git.gitTagCommand.removeTag (repoPath, tagName, function(err) {
+        if (err)
+        {
+            write(500, res, 'Error occured');
+        }
+        else
+        {
+            write(200, res, null, '');
+        }
+        
+    });
 }
