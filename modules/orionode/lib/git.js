@@ -944,7 +944,7 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                         'Name' : arr[i],
                         'Path' : arr[i]
                     };
-                    entry['key'].push(val);
+                    entry[key].push(val);
                 }
             }
             helperFunction(result.modified, 'Removed');
