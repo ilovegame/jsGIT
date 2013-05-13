@@ -962,41 +962,36 @@ function getRemote(res, rest, dataJson, workspaceDir) {
     var dataToResponse;
 
     if (restPathSize == 4) {
-        git.gitRemoteCommand.getRemotesNames(pathToRepo, function(err, remotesNames) {
+        git.gitRemoteCommand.getRemotes(pathToRepo, function(err, remotes) {
             if (err) {
                 write(500, res, err);
                 return;
             }
             var remotesNamesToResponse = new Array();
-            console.log(remotesNames);
-            remotesNames.forEach(function(name) {
-                remotesNamesToResponse.push(
-                    {
-                        "CloneLocation": "/gitapi/clone/file/" + repoName,
-                        "GitUrl": "https://github.com/kyloel/oriongit", //TODO
-                        "Location": "/gitapi/remote/" + name + "/file/" + repoName + "/",
-                        "Name": name,
-                        "Type" : "Remote"
-                    }
-                );
-            });
-/*
-{
-  "Children": [{
-    "CloneLocation": "/gitapi/clone/file/msabat/test/",
-    "GitUrl": "https://github.com/kyloel/oriongit",
-    "Location": "/gitapi/remote/dsada/file/msabat/test/",
-    "Name": "dsada",
-    "Type": "Remote"
-  }],
-  "Type": "Remote"
-}
-*/
-            dataToResponse = {
-                "Children": remotesNamesToResponse
+            if (err)
+            {
+                callback(err, null);
+                
             }
-            write(200, res, null, JSON.stringify(dataToResponse));
-            return;
+            else
+            {
+                remotes.forEach(function(remote) {
+                    remotesNamesToResponse.push(
+                        {
+                            'CloneLocation': '/gitapi/clone/file/' + remote['name'],
+                            'GitUrl': remote['url'],
+                            'Location': '/gitapi/remote/' + remote['name'] + '/file/' + repoName + '/',
+                            'Name': remote['name'],
+                            'Type' : 'Remote'
+                        }
+                    );
+                });
+                
+                dataToResponse = {
+                    'Children': remotesNamesToResponse
+                }
+                write(200, res, null, JSON.stringify(dataToResponse));
+            }
         });
     } else if (restPathSize == 5) {
         
