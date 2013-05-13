@@ -1341,7 +1341,22 @@ function putTag(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteBranch(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/branch/branchName/file/re/
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var branchName = splittedRest[1];
+    git.gitBranchCommand.removeBranch(repoPath, branchName, function(err) {
+        if (err)
+        {
+            writeError(500, res, err);
+        }
+        else
+        {
+            write(200, res, null, null);
+        }
+    });
+
 }
 
 function deleteClone(res, rest, dataJson, workspaceDir) {
