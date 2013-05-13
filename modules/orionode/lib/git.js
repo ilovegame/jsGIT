@@ -968,15 +968,30 @@ function getRemote(res, rest, dataJson, workspaceDir) {
                 return;
             }
             var remotesNamesToResponse = new Array();
-            for (var name in remotesNames) {
+            console.log(remotesNames);
+            remotesNames.forEach(function(name) {
                 remotesNamesToResponse.push(
                     {
+                        "CloneLocation": "/gitapi/clone/file/" + repoName,
+                        "GitUrl": "https://github.com/kyloel/oriongit", //TODO
                         "Location": "/gitapi/remote/" + name + "/file/" + repoName + "/",
-                        "Name": repoName
+                        "Name": name,
+                        "Type" : "Remote"
                     }
                 );
-            }
-
+            });
+/*
+{
+  "Children": [{
+    "CloneLocation": "/gitapi/clone/file/msabat/test/",
+    "GitUrl": "https://github.com/kyloel/oriongit",
+    "Location": "/gitapi/remote/dsada/file/msabat/test/",
+    "Name": "dsada",
+    "Type": "Remote"
+  }],
+  "Type": "Remote"
+}
+*/
             dataToResponse = {
                 "Children": remotesNamesToResponse
             }
@@ -1179,7 +1194,27 @@ function postIndex(res, rest, dataJson, workspaceDir) {
 }
 
 function postRemote(res, rest, dataJson, workspaceDir) {
-	
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+        //{ Remote: 'aa', RemoteURI: 'vv' }
+    
+    git.gitRemoteCommand.addNewRemote(repoPath, dataJson['Remote'], dataJson['RemoteURI'], null, dataJson['RemoteURI'], null, function(err) {
+        if (err)
+        {
+            console.log(err);
+        }
+        else
+        {
+                    var json = JSON.stringify( {
+                        'Location': '/gitapi/remote/' + dataJson['RemoteURI'] + '/' + repoName
+
+                    } );
+            write(200, res, null, json);
+        }
+    });
+    
+
 }
 
 function postStatus(res, rest, dataJson, workspaceDir) {
