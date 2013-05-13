@@ -1389,7 +1389,7 @@ function deleteConfig(res, rest, dataJson, workspaceDir) {
     git.gitConfigCommand.removeOption (repoPath, key, function(err) {
         if (err)
         {
-            
+            writeError(500, res, err);
         }
         else
         {
@@ -1408,7 +1408,21 @@ function deleteIndex(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteRemote(res, rest, dataJson, workspaceDir) {
-	
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    // /gitapi/branch/branchName/file/re/
+    var branchName = splittedRest[1];
+    git.gitRemoteCommand.removeRemote(repoPath, branchName, function(err) {
+        if (err)
+        {
+            writeError(500, res, err);
+        }
+        else
+        {
+            write(200, res, null, null);
+        }
+    });
 }
 
 function deleteStatus(res, rest, dataJson, workspaceDir) {
