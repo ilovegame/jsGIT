@@ -954,18 +954,11 @@ function getIndex(res, rest, dataJson, workspaceDir) {
 }
 
 
-function getRemote(res, rest, dataJson, workspaceDir) {
-    var repoName = rest.split('/');
-    repoName = repoName[repoName.length - 2];
-    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
-    var restPathSize = rest.split("/").length;
-    var dataToResponse;
-
-    if (restPathSize == 4) {
-        git.gitRemoteCommand.getRemotes(pathToRepo, function(err, remotes) {
+function getRemotes(pathToRepo, repoName, callback)
+{
+         git.gitRemoteCommand.getRemotes(pathToRepo, function(err, remotes) {
             if (err) {
-                write(500, res, err);
-                return;
+                callback(err, null);
             }
             var remotesNamesToResponse = new Array();
             if (err)
@@ -986,15 +979,56 @@ function getRemote(res, rest, dataJson, workspaceDir) {
                         }
                     );
                 });
-                
+                callback(err, remotesNamesToResponse);
+            }
+        });   
+}
+
+function getRemote(res, rest, dataJson, workspaceDir) {
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+    var restPathSize = rest.split("/").length;
+    var dataToResponse;
+
+    if (restPathSize == 4) {
+        getRemotes(pathToRepo, repoName, function(err, remotes) {
+            if (err)
+            {
+                write(500, res, err);
+            }
+            else
+            {
                 dataToResponse = {
-                    'Children': remotesNamesToResponse
+                    'Children': remotes
                 }
                 write(200, res, null, JSON.stringify(dataToResponse));
             }
         });
+
+                
+
     } else if (restPathSize == 5) {
-        
+        // /gitapi/remote/remote_name/file/re/
+        var remoteName = splittedRest[1];
+        getRemotes(pathToRepo, repoName, function(err, remotes) {
+            if (err)
+            {
+                write(500, res, err);
+            }
+            else
+            {
+                var i = 0;
+                while (remotes[i]['Name'] !== remoteName)
+                {
+                    ++i;
+                }
+                dataToResponse = {
+                    'Children': [remotes[i]]
+                }
+                write(200, res, null, JSON.stringify(dataToResponse));
+            }
+        });
     } else {
         
     }
@@ -1317,7 +1351,22 @@ function putTag(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteBranch(res, rest, dataJson, workspaceDir) {
-	
+// /gitapi/branch/branchName/file/re/
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    var branchName = splittedRest[1];
+    git.gitBranchCommand.removeBranch(repoPath, branchName, function(err) {
+        if (err)
+        {
+            writeError(500, res, err);
+        }
+        else
+        {
+            write(200, res, null, null);
+        }
+    });
+
 }
 
 function deleteClone(res, rest, dataJson, workspaceDir) {
@@ -1350,7 +1399,7 @@ function deleteConfig(res, rest, dataJson, workspaceDir) {
     git.gitConfigCommand.removeOption (repoPath, key, function(err) {
         if (err)
         {
-            
+            writeError(500, res, err);
         }
         else
         {
@@ -1369,7 +1418,21 @@ function deleteIndex(res, rest, dataJson, workspaceDir) {
 }
 
 function deleteRemote(res, rest, dataJson, workspaceDir) {
-	
+    var splittedRest = rest.split('/');
+    var repoName = splittedRest[splittedRest.length - 2];
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    // /gitapi/branch/branchName/file/re/
+    var branchName = splittedRest[1];
+    git.gitRemoteCommand.removeRemote(repoPath, branchName, function(err) {
+        if (err)
+        {
+            writeError(500, res, err);
+        }
+        else
+        {
+            write(200, res, null, null);
+        }
+    });
 }
 
 function deleteStatus(res, rest, dataJson, workspaceDir) {
