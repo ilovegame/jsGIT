@@ -179,7 +179,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                                 "Commit": jsonCommit,
                                 "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                                "Current": (branchName === 'master'), // branchesList[branchName]['active'],
+                                "Current": branchesList[branchName]['active'],
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
@@ -229,7 +229,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                         dataToResponse = {
                             "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                             "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                            "Current": (branchName === 'master'), //branchesList[branchName]['active'],
+                            "Current": branchesList[branchName]['active'],
                             "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                             "FullName": "refs/heads/" + branchName,
                             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
@@ -1225,6 +1225,16 @@ function putBranch(res, rest, dataJson, workspaceDir) {
 }
 
 function putClone(res, rest, dataJson, workspaceDir) {
+    var repoName = rest.split('/');
+    repoName = repoName[repoName.length - 2];
+    var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+
+    git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
+        if (err) {
+            writeError(500, res, err);
+        }
+         write(200, res, null, '');
+    });
 	
 }
 
