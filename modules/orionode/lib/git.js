@@ -183,7 +183,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                                "LocalTimeStamp": 1368125321000,
+                                "LocalTimeStamp": 1368125541000,
                                 "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                                 "Name": branchName,
                                 //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
@@ -233,7 +233,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                             "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                             "FullName": "refs/heads/" + branchName,
                             "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                            "LocalTimeStamp": 1368125321000,
+                            "LocalTimeStamp": 1368155341000,
                             "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                             "Name": branchName,
                             //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
@@ -253,7 +253,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                                "LocalTimeStamp": 1368125321000,
+                                "LocalTimeStamp": 1368625341000,
                                 "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                                 "Name": branchName,
                                 //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
@@ -1163,10 +1163,10 @@ function postClone(res, rest, dataJson, workspaceDir) {
                 else {
                     var commitInfo = {}
                     commitInfo.description = 'Initial commit';
-                    commitInfo.author = 'x';
-                    commitInfo.authorMail = 'x';
-                    commitInfo.committer = 'x';
-                    commitInfo.committerMail = 'x';
+                    commitInfo.author = 'admin';
+                    commitInfo.authorMail = 'admin';
+                    commitInfo.committer = 'admin';
+                    commitInfo.committerMail = 'admin';
                     git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
                         if (err) {
                             console.log(err);
