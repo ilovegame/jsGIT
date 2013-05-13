@@ -652,15 +652,24 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     {
         write(200, res, null, '');
     }
-    else if (restWords[1] === 'file') //TODO ?
+    else if (restWords[1] === 'file') //TODO not used in UI?
     {
 
         //getHeadCommits(repoPath, callback)
     }
-    else if (restWords[1] === 'HEAD') //TODO ?
+    else if (restWords[1] === 'HEAD') //TODO where is it in UI?
     {
-
-        //getHeadCommits(repoPath, callback)
+        git.gitCommitCommand.getHeadCommits(path.join(workspaceDir, repo), function(err, commits) {
+            if (err)
+            {
+                write(500, res, 'Cannot get commit list');
+            }
+            else
+            {
+                //TODO sort by timestamp
+                sendResponse(commits);
+            }
+        });
     }
     else if (restWords[1].substr(0, refsPrefix.length) === refsPrefix) // refs heads
     {
@@ -795,12 +804,11 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     // /gitapi/diff/Default/file/test/anotherFile.txt?parts=uris
     var splittedRest = rest.split('/');
     var uris = 'parts=uris';
-    var repoName = path.basename(splittedRest[3]);
+    var repoName = splittedRest[3];
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     var file = splittedRest[4];
 
-    
     if (splittedRest[1] === 'Default') //TODO: test when status is done
     {
         // Getting a diff between working tree and index 
@@ -816,8 +824,8 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                 */
                 var json = JSON.stringify( {    
                                                 'Base': '/gitapi/index/file/' + repoName + '/' + file,
-                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
-                                                'Location': '/gitapi/diff/Default/file' + repoName + '/' + file,
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                                'Location': '/gitapi/diff/Default/file/' + repoName + '/' + file,
                                                 'New': '/file/' + repoName + '/' + file,
                                                 'Old': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'Type': 'Diff'
@@ -834,7 +842,8 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                 else
                 {
                     var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
-                    write(200, res, null, temp);
+                    //write(200, res, null, temp);
+                    write(200, res, null, ''); //TODO why does this work?!
                 }
             }, file);
         }
@@ -916,7 +925,32 @@ function getDiff(res, rest, dataJson, workspaceDir) {
 }
 
 function getIndex(res, rest, dataJson, workspaceDir) {
-	
+    var splittedRest = rest.split('/');
+// /gitapi/index/file/re/12321.txt
+    var repoName = splittedRest[2];
+    var file = splittedRest[3];
+    var repo = path.join(repoName, '.git');
+    var repoPath = path.join(workspaceDir, repo);
+    console.log('---------------------');
+    //file = path.join(path.dirname(repoPath), 
+    file = path.join(workspaceDir, repoName, file);
+        console.log(repoPath);
+    console.log(file);
+	git.gitAddCommand.getFileContent(file, repoPath, function(content, err) { //TODO in gitAdd args should be reversed
+        if (err)
+        {
+            
+        }
+        else
+        {
+            console.log(err);
+            console.log(content);
+            write(200, res, null, content['Content']);
+        }
+
+    });
+    
+    
 }
 
 
@@ -986,7 +1020,8 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                     var val = {
                         'Git': {
                             'CommitLocation' : '/gitapi/commit/HEAD/file/' + repoName + '/' + arr[i],
-                            'DiffLocation' : '/gitapi/diff/Default/file/' + repoName + '/' + arr[i],
+                            // 'DiffLocation' : '/gitapi/diff/Default/file/' + repoName + '/' + arr[i],
+                            'DiffLocation' : '/gitapi/diff/Default/file/' + repoName +  arr[i],
                             'IndexLocation' : '/gitapi/index/file/' + repoName + '/' + arr[i],
                         },
                         'Location' : '/file/' + repoName + '/' + arr[i],
