@@ -1335,7 +1335,47 @@ function postDiff(res, rest, dataJson, workspaceDir) {
 }
 
 function postIndex(res, rest, dataJson, workspaceDir) {
-	
+    var req = decodeURIComponent(rest).split('/');
+    repoName = req[2];
+    repo = path.join(repoName, '.git');
+    var repoPath = path.join(workspaceDir, repo);
+    var fileRelativeName = '';
+    for(var i = 3; i < req.length; ++i) {
+        fileRelativeName = path.join(fileRelativeName, req[i]);   
+    }
+    if (dataJson['Reset']) {
+
+        git.gitAddCommand.removeAllFiles(repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+            return;
+        });
+    } else if (Object.prototype.toString.call(dataJson['Path']) === '[object Array]') {
+        var filesPath = new Array();
+        for (var pathIndex in dataJson['Path']) {
+            filesPath.push(path.join(path.join(workspaceDir, repoName), dataJson['Path'][pathIndex]));
+        }
+        git.gitAddCommand.removeManyFiles(filesPath, repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+            return;
+        });
+    } else if (Object.prototype.toString.call(dataJson['Path']) === '[object String]') {
+        git.gitAddCommand.removeOneFile(path.join(path.join(workspaceDir, repoName), dataJson['Path']), repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+            return;
+        });
+    }
 }
 
 function postRemote(res, rest, dataJson, workspaceDir) {
