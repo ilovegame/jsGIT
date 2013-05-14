@@ -1227,15 +1227,26 @@ function postIndex(res, rest, dataJson, workspaceDir) {
     for(var i = 3; i < req.length; ++i) {
         fileRelativeName = path.join(fileRelativeName, req[i]);   
     }
-    console.log(path.join(path.join(workspaceDir, repoName), fileRelativeName));
-    git.gitAddCommand.removeOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
-        if (err) {
-            writeError(500, res, err);
+    if (dataJson['Reset']) {
+
+        git.gitAddCommand.removeAllFiles(repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
             return;
-        }
-        write(200, res, null, '');
-        return;
-    });
+        });
+    } else {
+        git.gitAddCommand.removeOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+            return;
+        });
+    }
 }
 
 function postRemote(res, rest, dataJson, workspaceDir) {
