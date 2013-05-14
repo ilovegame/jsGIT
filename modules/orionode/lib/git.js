@@ -1237,8 +1237,21 @@ function postIndex(res, rest, dataJson, workspaceDir) {
             write(200, res, null, '');
             return;
         });
-    } else {
-        git.gitAddCommand.removeOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
+    } else if (Object.prototype.toString.call(dataJson['Path']) === '[object Array]') {
+        var filesPath = new Array();
+        for (var pathIndex in dataJson['Path']) {
+            filesPath.push(path.join(path.join(workspaceDir, repoName), dataJson['Path'][pathIndex]));
+        }
+        git.gitAddCommand.removeManyFiles(filesPath, repoPath, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+            return;
+        });
+    } else if (Object.prototype.toString.call(dataJson['Path']) === '[object String]') {
+        git.gitAddCommand.removeOneFile(path.join(path.join(workspaceDir, repoName), dataJson['Path']), repoPath, function(err) {
             if (err) {
                 writeError(500, res, err);
                 return;
