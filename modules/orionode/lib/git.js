@@ -1087,7 +1087,7 @@ function getStatus(res, rest, dataJson, workspaceDir) {
             helperFunction(result.changed, 'Changed');
             helperFunction(result.missing, 'Missing');
             helperFunction(result.untracked, 'Untracked');
-            helperFunction(result.conflicts', 'Conflicting');
+            helperFunction(result.conflicts, 'Conflicting');
             var json = JSON.stringify( entry );
             
             write(200, res, null, json);
