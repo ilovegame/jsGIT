@@ -1106,7 +1106,130 @@ function postClone(res, rest, dataJson, workspaceDir) {
 }
 
 function postCommit(res, rest, dataJson, workspaceDir) {
+    
+ 
+    
+    /*
+    var entry =     {
+                            'AuthorEmail': commit.author.authorMail,
+                            'AuthorImage': 'http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm',
+                            'AuthorName': commit.author.author,
+                            'Branches' : getBranches(commit.branches),
+                            'CloneLocation': '/gitapi/clone/file/' + repoName,
+                            'CommitterEmail': commit.committer.authorMail,
+                            'CommitterName': commit.committer.author,
+                            'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName,
+                            'Diffs' : getDiffs(repoName, commit),
 
+                            'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName,
+                            'Message': commit.description,
+                            'Name': commit.sha1,
+                            'Parents': parents,
+                            'Tags': tagsToJson(commit.tags, repoName),
+                            'Time': 1000*parseInt(commit.author.timestamp), // why ?
+                            'Type': 'Commit'
+                            };
+                    entries.push(entry);*/
+    
+    /*{
+  "AuthorEmail": "X",
+  "AuthorImage": "http://www.gravatar.com/avatar/9dd4e461268c8034f5c8564e155c67a6?d=mm",
+  "AuthorName": "X",
+  "Branches": [{"FullName": "refs/heads/master"}],
+  "CloneLocation": "/gitapi/clone/file/ilovegame/repo/",
+  "CommitterEmail": "X",
+  "CommitterName": "X",
+  "DiffLocation": "/gitapi/diff/eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/",
+  "Diffs": [{
+    "ChangeType": "ADD",
+    "ContentLocation": "/file/ilovegame/repo/WIARA%20kurde",
+    "DiffLocation": "/gitapi/diff/923cab8f058a52d889a117972be901e57bef7ec5..eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/WIARA%20kurde",
+    "NewPath": "WIARA kurde",
+    "OldPath": "/dev/null",
+    "Type": "Diff"
+  }],
+  "Location": "/gitapi/commit/eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/",
+  "Message": "test",
+  "Name": "eb219fcd250a5a83a70f8648952b7cfc500e5193",
+  "Parents": [{
+    "Location": "/gitapi/commit/923cab8f058a52d889a117972be901e57bef7ec5/file/ilovegame/repo/",
+    "Name": "923cab8f058a52d889a117972be901e57bef7ec5"
+  }],
+  "Tags": [],
+  "Time": 1368462673000,
+  "Type": "Commit"
+}*/
+//if error occurs 
+//{"HttpCode":400,"DetailedMessage":"Repository contains unmerged paths","Message":"An error occured when commiting.","Severity":"Error","Code":0}
+    
+    var getCommitJson = function(commit) {
+        var parents = getParents(repoName, commit.parents);
+        var entry =     {
+                'AuthorEmail': commit.author.authorMail,
+                'AuthorImage': 'http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm',
+                'AuthorName': commit.author.author,
+                'Branches' : getBranches(commit.branches),
+                'CloneLocation': '/gitapi/clone/file/' + repoName,
+                'CommitterEmail': commit.committer.authorMail,
+                'CommitterName': commit.committer.author,
+                'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName,
+                'Diffs' : getDiffs(repoName, commit),
+
+                'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName,
+                'Message': commit.description,
+                'Name': commit.sha1,
+                'Parents': parents,
+                'Tags': tagsToJson(commit.tags, repoName),
+                'Time': 1000*parseInt(commit.author.timestamp), // why ?
+                'Type': 'Commit'
+                };
+        entries.push(entry);
+    }
+    var repoName = path.basename(rest);
+    var repoPath = path.join(workspaceDir, repoName, '.git');
+    console.log(rest);
+    console.log(dataJson);
+    var commitInfo = {}
+    commitInfo.description = dataJson.Message;
+    commitInfo.author = dataJson.AuthorName;
+    commitInfo.authorMail = dataJson.AuthorEmail;
+    commitInfo.committer = dataJson.CommitterName;
+    commitInfo.committerMail = dataJson.CommitterEmail;
+    gcM.gitCommitIndex('/home/marcinek/gitrepotest/.git/', commitInfo, function(err) {
+        if(err) throw err;
+        else {
+            var entry = 
+            {
+                "AuthorEmail": dataJson.AuthorEmail,
+                "AuthorImage": 'http://www.gravatar.com/avatar/9dd4e461268c8034f5c8564e155c67a6?d=mm',
+                "AuthorName": dataJson.AuthorName,
+                "Branches": [{"FullName": "refs/heads/master"}], //ddunno
+                "CloneLocation": "/gitapi/clone/file/ilovegame/repo/", //dunno
+                "CommitterEmail": dataJson.ComitterEmail,
+                "CommitterName": dataJson.CommitterName,
+                "DiffLocation": "/gitapi/diff/eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/", //dunno
+                "Diffs": [{//dunno
+                    "ChangeType": "ADD",
+                    "ContentLocation": "/file/ilovegame/repo/WIARA%20kurde",
+                    "DiffLocation": "/gitapi/diff/923cab8f058a52d889a117972be901e57bef7ec5..eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/WIARA%20kurde",
+                    "NewPath": "WIARA kurde",
+                    "OldPath": "/dev/null",
+                    "Type": "Diff"
+                }],
+                "Location": "/gitapi/commit/eb219fcd250a5a83a70f8648952b7cfc500e5193/file/ilovegame/repo/",//dunno
+                "Message": dataJson.Message,
+                "Name": "eb219fcd250a5a83a70f8648952b7cfc500e5193", //dunno
+                "Parents": [{//dunno
+                    "Location": "/gitapi/commit/923cab8f058a52d889a117972be901e57bef7ec5/file/ilovegame/repo/",
+                    "Name": "923cab8f058a52d889a117972be901e57bef7ec5"
+                }],
+                "Tags": [],//dunno
+                "Time": 1368462673000,//dunno
+                "Type": "Commit"//dunno
+            }
+            console.log('success');   
+        }
+    });
 }
 
 function postConfig(res, rest, dataJson, workspaceDir) {
