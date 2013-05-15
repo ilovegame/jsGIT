@@ -1422,8 +1422,9 @@ function putClone(res, rest, dataJson, workspaceDir) {
     git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
         if (err) {
             writeError(500, res, err);
+            return;
         }
-         write(200, res, null, '');
+        write(200, res, null, '');
     });
 	
 }
