@@ -1474,24 +1474,54 @@ function putDiff(res, rest, dataJson, workspaceDir) {
 }
 
 function putIndex(res, rest, dataJson, workspaceDir) {
-    //TODO multifiles;
+
     var req = decodeURIComponent(rest).split('/');
     repoName = req[2]; //  index/file/REPONAME/FILENAME
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    var fileRelativeName = '';
-    for(var i = 3; i < req.length; ++i) {
-        fileRelativeName = path.join(fileRelativeName, req[i]);   
-    }
-    git.gitAddCommand.addOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
-        if (err) {
-            console.log('putIndex err');
-            write(500, res, 'Error occured');   
+    
+    if(dataJson) {
+        if ('Path' in dataJson) {
+            for(var i = 0; i < dataJson['Path'].length; ++i) {
+                dataJson['Path'][i] = path.join(path.join(workspaceDir, repoName), dataJson['Path'][i]);
+            }
+            git.gitAddCommand.addManyFiles(dataJson['Path'], repoPath, function(err) {
+                    if (err) {
+                        write(500, res, 'Error occured');   
+                    } else {
+                        write(200, res, null, '');
+                    }
+                });
         } else {
-            console.log('putIndex ok');
-            write(200, res, null, '');
+            write(400, res, 'bad request');   
         }
-    });
+    } else {
+        var fileRelativeName = '';
+        for(var i = 3; i < req.length; ++i) {
+            fileRelativeName = path.join(fileRelativeName, req[i]);   
+        }
+        git.gitAddCommand.addOneFile(path.join(path.join(workspaceDir, repoName), fileRelativeName), repoPath, function(err) {
+            if (err) {
+                write(500, res, 'Error occured');   
+            } else {
+                write(200, res, null, '');
+            }
+        });
+    }
+    
+    /* 
+     * 
+     * robimy status
+     * albo usuwamy z indexu -> jesli missing
+     * albo robimy addFile
+     * 
+     * 
+     * unstage:
+     * albo robimy to co lukasz
+     * albo jestli jest removed to przywracamy plik
+     * robimy gitaddfile
+     * usuwamy pliczek
+     */
 }
 
 function putRemote(res, rest, dataJson, workspaceDir) {
