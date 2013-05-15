@@ -1198,41 +1198,68 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 // TODO mk dir orionode/.workspace !!!
 function postClone(res, rest, dataJson, workspaceDir) {
     //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
-    var dir = ph.join(workspaceDir, dataJson['Name']);
-    console.log('dir ' + dir);
-    fs.mkdir(dir, function (err) {
-        if (err)
-        {
-            console.log(err);
-            writeError(500, res, 'Error occured. Cannot create ' + dataJson['Name'] + ' dir');
-        }
-        else {
-            git.gitInitCommand.init (dir, function(err) {
-                if (err)
-                {
-                    console.log(err);
-                    writeError(500, res, 'Error occured. Cannot create .git dir');
-                }
-                else {
-                    var commitInfo = {}
-                    commitInfo.description = 'Initial commit';
-                    commitInfo.author = 'admin';
-                    commitInfo.authorMail = 'admin';
-                    commitInfo.committer = 'admin';
-                    commitInfo.committerMail = 'admin';
-                    git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
-                        if (err) {
-                            console.log(err);
-                            writeError(500, res, 'Error occured. Cannot make empty commit dir');
-                            return;
-                        }
-                        var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
-                        write(201, res, null, resJson);
-                    });
-                }
-            })
-        }
-    });
+    console.log(rest);
+    console.log(dataJson);
+    if (dataJson['GitUrl']) {
+        var repoPath = path.join(workspaceDir, 'XXXXXC');
+        git.gitCloneCommand.cloneOverGit(repoPath, dataJson['GitUrl'], function(err) {
+            console.log('ha!');
+            if (err) {
+                console.log(err);
+                //writeError(500, res, 'CloneError');
+                return;
+            }
+            var response = 
+                
+            {
+            "Id": "IOOD6ph8ABASBcDqmXX87w",
+            "Location": "http://localhost:8080/task/id/IOOD6ph8ABASBcDqmXX87w",
+            "Message": "Cloning c:\\home\\clones\\testClone...",
+            "PercentComplete": 0,
+            "Running": true
+            }
+            console.log('ha!');
+            //write(201, res, null, response);
+
+        });
+    } else {
+        var dir = ph.join(workspaceDir, dataJson['Name']);
+        console.log('dir ' + dir);
+        fs.mkdir(dir, function (err) {
+            if (err)
+            {
+                console.log(err);
+                writeError(500, res, 'Error occured. Cannot create ' + dataJson['Name'] + ' dir');
+            }
+            else {
+                git.gitInitCommand.init (dir, function(err) {
+                    if (err)
+                    {
+                        console.log(err);
+                        writeError(500, res, 'Error occured. Cannot create .git dir');
+                    }
+                    else {
+                        var commitInfo = {}
+                        commitInfo.description = 'Initial commit';
+                        commitInfo.author = 'admin';
+                        commitInfo.authorMail = 'admin';
+                        commitInfo.committer = 'admin';
+                        commitInfo.committerMail = 'admin';
+                        git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
+                            if (err) {
+                                console.log(err);
+                                writeError(500, res, 'Error occured. Cannot make empty commit dir');
+                                return;
+                            }
+                            var resJson = JSON.stringify({ 'Location' :  '/gitapi/clone/file/' + dataJson['Name'] });
+                            write(201, res, null, resJson);
+                        });
+                    }
+                })
+            }
+        });
+    }
+    
 	
     
 }
