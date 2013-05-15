@@ -175,6 +175,10 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 writeError(500, res, err);
                                 return;
                             }
+                            var localTimeStamp = 0;
+                            if (commits[0]) {
+                                localTimeStamp = commits[0]['committer']['timestamp'];
+                            }
                             branchInfo = {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                                 "Commit": jsonCommit,
@@ -183,7 +187,7 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                                "LocalTimeStamp": 1368125541000,
+                                "LocalTimeStamp": localTimeStamp,
                                 "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                                 "Name": branchName,
                                 //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
@@ -226,50 +230,93 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                         if (branchName != selectedBranch) {
                             continue;
                         }
-                        dataToResponse = {
-                            "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                            "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                            "Current": branchesList[branchName]['active'],
-                            "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
-                            "FullName": "refs/heads/" + branchName,
-                            "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                            "LocalTimeStamp": 1368155341000,
-                            "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
-                            "Name": branchName,
-                            //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
-                            "RemoteLocation": [],
-                            "Type": "Branch"
-                        }
-                        break;
-                    }
-                } else {
-                    var branchesInfo = new Array();
-                    for (var branchName in branchesList) {
-                        branchesInfo.push(
-                            {
+                        git.gitCommitCommand.geBranchCommitsByName(pathToRepo, branchName, function(err, commits) {
+                            if (err) {
+                                writeError(500, res, err);
+                                return;
+                            }
+                            var localTimeStamp = 0;
+                            if (commits[0]) {
+                                localTimeStamp = commits[0]['committer']['timestamp'];
+                            }
+                            dataToResponse = {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
                                 "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
-                                "Current": (branchName === 'master'), // branchesList[branchName]['active'],
+                                "Current": branchesList[branchName]['active'],
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
                                 "FullName": "refs/heads/" + branchName,
                                 "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
-                                "LocalTimeStamp": 1368625341000,
+                                "LocalTimeStamp": localTimeStamp,
                                 "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
                                 "Name": branchName,
                                 //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
                                 "RemoteLocation": [],
                                 "Type": "Branch"
                             }
-                        );
+                            write(200, res, null, JSON.stringify(dataToResponse));
+                            return;
+                        });
                     }
-                    var dataToResponse = {
-                        "Children": branchesInfo,
-                        "Type": "Branch",
+                } else {
+                    var branchesInfo = new Array();
+                    var addInfo = function(keys, index, callback) {
+                        if (keys.length == index) {
+                            callback('');
+                            return;
+                        }
+                        var branchName = keys[index];
+                        git.gitCommitCommand.geBranchCommitsByName(pathToRepo, branchName, function(err, commits) {
+                            if (err) {
+                                writeError(500, res, err);
+                                return;
+                            }
+                            var localTimeStamp = 0;
+                            if (commits[0]) {
+                                localTimeStamp = commits[0]['committer']['timestamp'];
+                            }
+                            branchesInfo.push(
+                                {
+                                    "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
+                                    "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
+                                    "Current": branchesList[branchName]['active'],
+                                    "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
+                                    "FullName": "refs/heads/" + branchName,
+                                    "HeadLocation": "/gitapi/commit/HEAD/file/" + repoName + "/",
+                                    "LocalTimeStamp": localTimeStamp,
+                                    "Location": "/gitapi/branch/" + branchName + "/file/" + repoName + "/",
+                                    "Name": branchName,
+                                    //"RemoteLocation": "/gitapi/remote/origin/" + branchName + "/file/" + repoName + "/",
+                                    "RemoteLocation": [],
+                                    "Type": "Branch"
+                                }
+                            );
+                            addInfo(keys, index + 1, function(err) {
+                                if (err) {
+                                    callback(err);
+                                    return;
+                                }
+                                callback('');
+                                return;
+                            });
+                        });
                     }
-                }           
-
-                write(200, res, null, JSON.stringify(dataToResponse));
-                return;
+                    var keys = new Array();
+                    for (branchName in branchesList) {
+                        keys.push(branchName);
+                    }
+                    addInfo(keys, 0, function(err) {
+                        if (err) {
+                            writeError(500, res, err);
+                            return;
+                        }
+                        var dataToResponse = {
+                            "Children": branchesInfo,
+                            "Type": "Branch",
+                        }
+                        write(200, res, null, JSON.stringify(dataToResponse));
+                        return;
+                    });
+                }
             }
         });
 }
@@ -1422,8 +1469,9 @@ function putClone(res, rest, dataJson, workspaceDir) {
     git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
         if (err) {
             writeError(500, res, err);
+            return;
         }
-         write(200, res, null, '');
+        write(200, res, null, '');
     });
 	
 }
