@@ -1476,8 +1476,8 @@ function putDiff(res, rest, dataJson, workspaceDir) {
 function putIndex(res, rest, dataJson, workspaceDir) {
 
     var req = decodeURIComponent(rest).split('/');
-    repoName = req[2]; //  index/file/REPONAME/FILENAME
-    repo = path.join(repoName, '.git');
+    var repoName = req[2]; //  index/file/REPONAME/FILENAME
+    var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     
     if(dataJson) {
