@@ -1126,7 +1126,7 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                         'Git': {
                             'CommitLocation' : '/gitapi/commit/HEAD/file/' + repoName + '/' + arr[i],
                             // 'DiffLocation' : '/gitapi/diff/Default/file/' + repoName + '/' + arr[i],
-                            'DiffLocation' : '/gitapi/diff/Default/file/' + repoName +  arr[i],
+                            'DiffLocation' : '/gitapi/diff/Default/file/' + repoName +  '/' + arr[i],
                             'IndexLocation' : '/gitapi/index/file/' + repoName + '/' + arr[i],
                         },
                         'Location' : '/file/' + repoName + '/' + arr[i],
