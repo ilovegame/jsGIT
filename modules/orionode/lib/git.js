@@ -32,8 +32,8 @@ function doJob(handler, rest, req, res, workspaceDir) {
 	//TODO handle invalid requests
 	//console.log(handler);
     //console.log(res);
-    console.log('doJob:');
-    console.log(rest);
+    //console.log('doJob:');
+    //console.log(rest);
 	var methodName = rest[0] === '/' ? rest.split('/')[1] : rest.split('/')[0];
 	var method = handler[methodName];
 	var queryData = "";
@@ -52,9 +52,9 @@ function doJob(handler, rest, req, res, workspaceDir) {
 }
 
 module.exports = function(options) {
-	console.log("OPT: " );
-    console.log(options);
-	console.log("OPT: ");
+	//console.log("OPT: " );
+    //console.log(options);
+	//console.log("OPT: ");
     //console.log(opt);
     
 	var fileRoot = options.root;
@@ -654,28 +654,6 @@ function commitsToJson(repoPath, repoName, commits, callback)
                     entries.push(entry);
                 });
 
-                /*
-                var json = {    'Children' : entries, 
-                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
-                                                'Location': "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
-                                                'RepositoryPath': '',
-                                                'Type': 'Commit',
-                                                "toRef": {
-                                                        "CloneLocation": "/gitapi/clone/file/" + repoName,
-                                                        "CommitLocation": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
-                                                        "Current": true,
-                                                        "DiffLocation": "/gitapi/diff/master/file/msabat/test/",
-                                                        "FullName": "refs/heads/master",
-                                                        "HeadLocation": "/gitapi/commit/HEAD/file/msabat/test/",
-                                                        "LocalTimeStamp": 1365600727000,
-                                                        "Location": "/gitapi/branch/master/file/" + repoName,
-                                                        "Name": "master",
-                                                        "RemoteLocation": [],
-                                                        "Type": "Branch"
-                                                    }
-                                            
-                                            } 
-                */
                 callback(null, entries);
             }
             
@@ -922,20 +900,20 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     var file = splittedRest[4];
+    
+    var req = rest.split('/');
 
+    var fileRelativeName = '';
+    for(var i = 4; i < req.length; ++i) {
+        fileRelativeName = path.join(fileRelativeName, decodeURIComponent(req[i]));   
+    }
+    file = fileRelativeName;
+    //console.log(file);
     if (splittedRest[1] === 'Default') //TODO: test when status is done
     {
         // Getting a diff between working tree and index 
         if (lastReqPath.query === uris)
         {
-                /*
-    Base: "/gitapi/index/file/msabat/test/anotherFile.txt"
-    CloneLocation: "/gitapi/clone/file/msabat/test/"
-    Location: "/gitapi/diff/Default/file/msabat/test/anotherFile.txt"
-    New: "/file/msabat/test/anotherFile.txt"
-    Old: "/gitapi/index/file/msabat/test/anotherFile.txt"
-    Type: "Diff"
-                */
                 var json = JSON.stringify( {    
                                                 'Base': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
@@ -957,7 +935,6 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                 {
                     var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
                     write(200, res, null, temp);
-                    //write(200, res, null, ''); //TODO why does this work?!
                 }
             }, file);
         }
@@ -1042,7 +1019,12 @@ function getIndex(res, rest, dataJson, workspaceDir) {
     var splittedRest = rest.split('/');
 // /gitapi/index/file/re/12321.txt
     var repoName = splittedRest[2];
-    var file = splittedRest[3];
+    var req = decodeURIComponent(rest).split('/');
+    var file = '';
+    for(var i = 3; i < req.length; ++i) {
+        file = path.join(file, decodeURIComponent(req[i]));
+    }
+    
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
 
@@ -1188,12 +1170,14 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                     entry[key].push(val);
                 }
             }
+            /*
             console.log(result.removed);
             console.log(result.added);
             console.log(result.modified);
             console.log(result.changed);
             console.log(result.missing);
             console.log(result.untracked);
+            */
             helperFunction(result.removed, 'Removed');
             helperFunction(result.added, 'Added');
             helperFunction(result.modified, 'Modified');
@@ -1264,24 +1248,24 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 // TODO mk dir orionode/.workspace !!!
 function postClone(res, rest, dataJson, workspaceDir) {
     //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
-    console.log(rest);
-    console.log(dataJson);
+    //console.log(rest);
+    //console.log(dataJson);
     if (dataJson['GitUrl']) {
         var tmp = decodeURIComponent(dataJson['GitUrl']);
-        console.log(tmp);
+        //console.log(tmp);
         var repoName = ph.basename(tmp);
         //repoName = repoName.slice(0, repoName.length - 4);
         var repoPath = path.join(workspaceDir, repoName);
         var number = 0;
-        console.log(repoName);
+        //console.log(repoName);
         var work = function() {
             git.gitCloneCommand.cloneOverGit(repoPath + ((number === 0) ? ('') : ('-' + number)), dataJson['GitUrl'], function(err) {
                 if (err) {
-                    console.log(err);
+                    //console.log(err);
                     writeError(500, res, 'CloneError');
                     return;
                 }
-                console.log(repoPath);
+                //console.log(repoPath);
                 var response = 
                   
                 {
