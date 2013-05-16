@@ -562,46 +562,54 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
                 commit.branches = branches
                 
                 git.gitTagCommand.getTagNames(repoPath, function(err, tags) {
-                    var selectedTags = [];
-                    
-                    tags.forEach(function(tag) {
-                        if (tag['commit_SHA_1'] === commit.sha1)
+                        if (err)
                         {
-                            selectedTags.push(tag);
+                            callback(err, null);
                         }
-                    });
-                    
-                    commit.tags = selectedTags;
+                        else
+                        {
+                            var selectedTags = [];
+                            
+                            tags.forEach(function(tag) {
+                                if (tag['commit_SHA_1'] === commit.sha1)
+                                {
+                                    selectedTags.push(tag);
+                                }
+                            });
+                            
+                            commit.tags = selectedTags;
 
-                    if (commit.parents.length === 0)
-                    {
-                        git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
-                            if (err)
+                            if (commit.parents.length === 0)
                             {
-                                callback(err, null);
+                                git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+                                    if (err)
+                                    {
+                                        callback(err, null);
+                                    }
+                                    else
+                                    {
+                                        commit.diffs = diffs;
+                                        callback(null, commit);
+                                    }
+                                }, null);
                             }
                             else
                             {
-                                commit.diffs = diffs;
-                                callback(null, commit);
+                                //TODO, multiple parents
+                                git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
+                                    if (err)
+                                    {
+                                        callback(err, null);
+                                    }
+                                    else
+                                    {
+                                        commit.diffs = diffs;
+                                        callback(null, commit);
+                                    }
+                                }, null);
                             }
-                        }, null);
-                    }
-                    else
-                    {
-                        //TODO, multiple parents
-                        git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
-                            if (err)
-                            {
-                                callback(err, null);
-                            }
-                            else
-                            {
-                                commit.diffs = diffs;
-                                callback(null, commit);
-                            }
-                        }, null);
-                    }
+                        }
+
                     
                 });
                 
@@ -698,7 +706,7 @@ function getCommit(res, rest, dataJson, workspaceDir) {
             {
                 var temp = branchName.split('%252F');
                 var shortBranchName = temp[temp.length - 1];
-                //TODOS
+
                 var json = {
                                 'Children' : jsonCommits,
                                 'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
@@ -735,8 +743,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
     //  5: /gitapi/commit/5329cb1882c503ea7faf0c0d1650f4d9eda59532/file/test/file.txt?parts=body
 
     var restWords = rest.split("/");
-    console.log(rest);
-
 
     var refsPrefix = 'refs%252Fheads%252F';
 
@@ -950,8 +956,8 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                 else
                 {
                     var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
-                    //write(200, res, null, temp);
-                    write(200, res, null, ''); //TODO why does this work?!
+                    write(200, res, null, temp);
+                    //write(200, res, null, ''); //TODO why does this work?!
                 }
             }, file);
         }
@@ -1039,20 +1045,16 @@ function getIndex(res, rest, dataJson, workspaceDir) {
     var file = splittedRest[3];
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    console.log('---------------------');
+
     //file = path.join(path.dirname(repoPath), 
     file = path.join(workspaceDir, repoName, file);
-        console.log(repoPath);
-    console.log(file);
 	git.gitAddCommand.getFileContent(file, repoPath, function(content, err) { //TODO in gitAdd args should be reversed
         if (err)
         {
-            
+            write(500, res, err);
         }
         else
         {
-            console.log(err);
-            console.log(content);
             write(200, res, null, content['Content']);
         }
 
@@ -1068,27 +1070,31 @@ function getRemotes(pathToRepo, repoName, callback)
             if (err) {
                 callback(err, null);
             }
-            var remotesNamesToResponse = new Array();
-            if (err)
-            {
-                callback(err, null);
-                
-            }
             else
             {
-                remotes.forEach(function(remote) {
-                    remotesNamesToResponse.push(
-                        {
-                            'CloneLocation': '/gitapi/clone/file/' + remote['name'],
-                            'GitUrl': remote['url'],
-                            'Location': '/gitapi/remote/' + remote['name'] + '/file/' + repoName + '/',
-                            'Name': remote['name'],
-                            'Type' : 'Remote'
-                        }
-                    );
-                });
-                callback(err, remotesNamesToResponse);
+                var remotesNamesToResponse = new Array();
+                if (err)
+                {
+                    callback(err, null);
+                    
+                }
+                else
+                {
+                    remotes.forEach(function(remote) {
+                        remotesNamesToResponse.push(
+                            {
+                                'CloneLocation': '/gitapi/clone/file/' + remote['name'],
+                                'GitUrl': remote['url'],
+                                'Location': '/gitapi/remote/' + remote['name'] + '/file/' + repoName + '/',
+                                'Name': remote['name'],
+                                'Type' : 'Remote'
+                            }
+                        );
+                    });
+                    callback(err, remotesNamesToResponse);
+                }
             }
+
         });   
 }
 
@@ -1148,7 +1154,6 @@ function getStatus(res, rest, dataJson, workspaceDir) {
     var repoPath = path.join(workspaceDir, repo);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
         if(err) {
-            console.log(err);
             write(500, res, 'Cannot get repostory status');
         } else {
             var entry = {
@@ -1305,18 +1310,15 @@ function postClone(res, rest, dataJson, workspaceDir) {
         
     } else {
         var dir = ph.join(workspaceDir, dataJson['Name']);
-        console.log('dir ' + dir);
         fs.mkdir(dir, function (err) {
             if (err)
             {
-                console.log(err);
                 writeError(500, res, 'Error occured. Cannot create ' + dataJson['Name'] + ' dir');
             }
             else {
                 git.gitInitCommand.init (dir, function(err) {
                     if (err)
                     {
-                        console.log(err);
                         writeError(500, res, 'Error occured. Cannot create .git dir');
                     }
                     else {
@@ -1328,7 +1330,6 @@ function postClone(res, rest, dataJson, workspaceDir) {
                         commitInfo.committerMail = 'admin';
                         git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
                             if (err) {
-                                console.log(err);
                                 writeError(500, res, 'Error occured. Cannot make empty commit dir');
                                 return;
                             }
@@ -1440,8 +1441,6 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
             }
                 
             var json = JSON.stringify(responseJson);
-            console.log(json);
-            console.log(res);
             write(200, res, null, json);
         });
     } else {
@@ -1542,7 +1541,7 @@ function postRemote(res, rest, dataJson, workspaceDir) {
     git.gitRemoteCommand.addNewRemote(repoPath, dataJson['Remote'], dataJson['RemoteURI'], null, dataJson['RemoteURI'], null, function(err) {
         if (err)
         {
-            console.log(err);
+            writeError(500, res, err);
         }
         else
         {
