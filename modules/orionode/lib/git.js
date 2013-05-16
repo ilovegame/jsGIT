@@ -1201,27 +1201,47 @@ function postClone(res, rest, dataJson, workspaceDir) {
     console.log(rest);
     console.log(dataJson);
     if (dataJson['GitUrl']) {
-        var repoPath = path.join(workspaceDir, 'XXXXXC');
-        git.gitCloneCommand.cloneOverGit(repoPath, dataJson['GitUrl'], function(err) {
-            console.log('ha!');
-            if (err) {
-                console.log(err);
-                //writeError(500, res, 'CloneError');
-                return;
-            }
-            var response = 
-                
-            {
-            "Id": "IOOD6ph8ABASBcDqmXX87w",
-            "Location": "http://localhost:8080/task/id/IOOD6ph8ABASBcDqmXX87w",
-            "Message": "Cloning c:\\home\\clones\\testClone...",
-            "PercentComplete": 0,
-            "Running": true
-            }
-            console.log('ha!');
-            //write(201, res, null, response);
+        var tmp = decodeURIComponent(dataJson['GitUrl']);
+        console.log(tmp);
+        var repoName = ph.basename(tmp);
+        repoName = repoName.slice(0, repoName.length - 4);
+        var repoPath = path.join(workspaceDir, repoName);
+        var number = 0;
+        console.log(repoName);
+        var work = function() {
+            git.gitCloneCommand.cloneOverGit(repoPath + ((number === 0) ? ('') : ('-' + number)), dataJson['GitUrl'], function(err) {
+                if (err) {
+                    console.log(err);
+                    writeError(500, res, 'CloneError');
+                    return;
+                }
+                console.log(repoPath);
+                var response = 
+                  
+                {
+                "Id": "IOOD6ph8ABASBcDqmXX87w",
+                "Location": "http://localhost:8080/task/id/IOOD6ph8ABASBcDqmXX87w",
+                "Message": "Cloning c:\\home\\clones\\testClone...",
+                "PercentComplete": 0,
+                "Running": true
+                }
 
-        });
+                write(201, res, null, response);
+
+            });
+        }
+        var work2 = function() {
+            fs.exists(repoPath + ((number === 0) ? ('') : ('-' + number)), function(exists) {
+                if (exists) {
+                    number++;
+                    work2();
+                } else {
+                    work();   
+                }
+            });
+        }
+        work2();
+        
     } else {
         var dir = ph.join(workspaceDir, dataJson['Name']);
         console.log('dir ' + dir);
