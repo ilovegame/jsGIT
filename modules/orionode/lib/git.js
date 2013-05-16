@@ -884,6 +884,7 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     Old: "/gitapi/index/file/msabat/test/anotherFile.txt"
     Type: "Diff"
                 */
+                console.log('woot');
                 var json = JSON.stringify( {    
                                                 'Base': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
@@ -896,13 +897,16 @@ function getDiff(res, rest, dataJson, workspaceDir) {
         }
         else if (lastReqPath.query === 'parts=diff')
         {
+            console.log('woot');
             git.gitDiffCommand.getDiffWorkingTreeAndIndex(repoPath, function(err, diffs) {
+                console.log('huuuh?');
                 if (err)
                 {
                     write(500, res, 'Cannot get diff');
                 }
                 else
                 {
+                    console.log('file ' + file);
                     var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
                     //write(200, res, null, temp);
                     write(200, res, null, ''); //TODO why does this work?!
@@ -912,7 +916,9 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     }
     else if (splittedRest[1].length === 40) // 
     {
-        
+        console.log('lmao');
+        console.log(file);
+        console.log(splittedRest);
         var sha1 = splittedRest[1];
         if (lastReqPath.query === uris)
         {
@@ -941,6 +947,7 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                         }
                         else
                         {
+                            console.log(file);
                             var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
                             write(200, res, null, temp);
                         }
@@ -951,6 +958,7 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     }
     else
     {
+        console.log('lma2o');
         var sha1 = splittedRest[1].split('..');
         var newSha1 = sha1[1];
         var oldSha1 = sha1[0];
@@ -1098,6 +1106,7 @@ function getRemote(res, rest, dataJson, workspaceDir) {
 
 function getStatus(res, rest, dataJson, workspaceDir) {
     var repoName = path.basename(decodeURIComponent(rest));
+    console.log('reponame ' + repoName);
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
@@ -1320,7 +1329,14 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
 }
 
      */
-    var repoName = path.basename(rest);
+    //POST /git/commit/HEAD/file/A/test.txt
+/*
+{
+"Message" : "fixing bug 349827" 
+} */ 
+    console.log(rest)
+    var splitRest = rest.split('/');
+    var repoName = decodeURIComponent(splitRest[3]);
     var repoPath = path.join(workspaceDir, repoName, '.git');
     var getCommitJson = function(commit) {
         var parents = getParents(repoName, commit.parents);
@@ -1408,7 +1424,17 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
         if(dataJson.Amend) {
             git.gitCommitCommand2.gitCommitAmend(repoPath, commitInfo, afterCommit);   
         } else {
-            git.gitCommitCommand2.gitCommitIndex(repoPath, commitInfo, afterCommit);
+            var fileRelativeName = '';
+            console.log(splitRest.length);
+            if (splitRest[4].length > 0) {        // commit/HEAD/file/xx/ splitRest[4] = '' 
+                //WARNING I COULDN'T FIND commit single file in orion web interface, it's not tested
+                for(var i = 4; i < splitRest.length; ++i) {
+                    fileRelativeName = path.join(fileRelativeName, splitRest[i]);   
+                }
+                git.gitCommitCommand2.gitCommitSingleFile(repoPath, commitInfo, fileRelativeName, afterCommit);
+            } else {
+                git.gitCommitCommand2.gitCommitIndex(repoPath, commitInfo, afterCommit);
+            }
         }
     }
 }
@@ -1527,15 +1553,41 @@ function putClone(res, rest, dataJson, workspaceDir) {
     var repoName = rest.split('/');
     repoName = repoName[repoName.length - 2];
     var pathToRepo = workspaceDir + '/' + repoName + '/.git';
-
-    git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
-        if (err) {
-            writeError(500, res, err);
-            return;
+    if (dataJson['Path']) {
+        var pending = dataJson['Path'].length;
+        for (var i = 0; i < dataJson['Path'].length; ++i) {
+            var work = function(index) {
+                git.gitCheckoutCommand.discardChanges(dataJson['Path'][index], pathToRepo, function(err) {
+                    if (err) {
+                        writeError(500, res, err);
+                        return;
+                    }
+                    if(!--pending) {
+                        write(200, res, null, '');   
+                    }
+                });   
+            }
+            if (dataJson['RemoveUntracked'])  {
+                var index = i;
+                fs.unlink(ph.join(workspaceDir,repoName,dataJson['Path'][i]), function(err) {
+                    work(index);
+                });
+            } else {
+                work(i);   
+            }
+            
         }
-        write(200, res, null, '');
-    });
-	
+    } else if (dataJson['Tag']) {
+        
+    } else {
+        git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
+            if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            write(200, res, null, '');
+        });
+    }	
 }
 
 function putCommit(res, rest, dataJson, workspaceDir) {
