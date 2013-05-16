@@ -554,22 +554,36 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
                     //callback(null, commits[i]);
                     
                    
-                    
+                    // https://github.com/kyloel/clone/
                     if (commit.parents.length === 0)
                     {
                         git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
-
-                            commit.diffs = diffs;
-                            callback(null, commit);
+                            if (err)
+                            {
+                                throw err;
+                                callback(err, null);
+                            }
+                            else
+                            {
+                                commit.diffs = diffs;
+                                callback(null, commit);
+                            }
                         }, null);
                     }
                     else
                     {
                         //TODO, multiple parents
                         git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
-
-                            commit.diffs = diffs;
-                            callback(null, commit);
+                            if (err)
+                            {
+                                throw err;
+                                callback(err, null);
+                            }
+                            else
+                            {
+                                commit.diffs = diffs;
+                                callback(null, commit);
+                            }
                         }, null);
                     }
                     
