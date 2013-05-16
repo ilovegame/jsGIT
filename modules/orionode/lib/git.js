@@ -576,6 +576,7 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
                         git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
                             if (err)
                             {
+                                console.log(repoPath);
                                 throw err;
                                 callback(err, null);
                             }
@@ -1218,7 +1219,7 @@ function postClone(res, rest, dataJson, workspaceDir) {
         var tmp = decodeURIComponent(dataJson['GitUrl']);
         console.log(tmp);
         var repoName = ph.basename(tmp);
-        repoName = repoName.slice(0, repoName.length - 4);
+        //repoName = repoName.slice(0, repoName.length - 4);
         var repoPath = path.join(workspaceDir, repoName);
         var number = 0;
         console.log(repoName);
