@@ -32,8 +32,8 @@ function doJob(handler, rest, req, res, workspaceDir) {
 	//TODO handle invalid requests
 	//console.log(handler);
     //console.log(res);
-    console.log('doJob:');
-    console.log(rest);
+    //console.log('doJob:');
+    //console.log(rest);
 	var methodName = rest[0] === '/' ? rest.split('/')[1] : rest.split('/')[0];
 	var method = handler[methodName];
 	var queryData = "";
@@ -52,9 +52,9 @@ function doJob(handler, rest, req, res, workspaceDir) {
 }
 
 module.exports = function(options) {
-	console.log("OPT: " );
-    console.log(options);
-	console.log("OPT: ");
+	//console.log("OPT: " );
+    //console.log(options);
+	//console.log("OPT: ");
     //console.log(opt);
     
 	var fileRoot = options.root;
@@ -170,7 +170,8 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                             writeError(500, res, err);
                             return;
                         }
-                        commitsToJson(pathToRepo, repoName, commits, function(err, jsonCommit) {
+                        commitsToJson(pathToRepo, repoName, commits, function(err, jsonCommits) {
+                            
                             if (err) {
                                 writeError(500, res, err);
                                 return;
@@ -179,9 +180,33 @@ function getBranch(res, rest, dataJson, workspaceDir) {
                             if (commits[0]) {
                                 localTimeStamp = commits[0]['committer']['timestamp'];
                             }
+                            
+                            var fromRef = {
+                                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                'CommitLocation': '/gitapi/commit/refs%252Fheads%252F' + branchName + '/file/' + repoName + '/',
+                                'Current': branchesList[branchName]['active'],
+                                'DiffLocation': '/gitapi/diff/' + branchName + '/file/' + repoName + '/',
+                                'FullName': 'refs/heads/' + branchName,
+                                'HeadLocation': '/gitapi/commit/HEAD/file/' + repoName + '/',
+                                'LocalTimeStamp': localTimeStamp,
+                                'Location' : '/gitapi/branch/' + branchName + '/file/' + repoName + '/',
+                                'Name' : branchName,
+                                'RemoteLocation' : [],
+                                'Type': 'Branch'
+                            }
+
+                            var commitsJson = {
+                                'Children' : jsonCommits,
+                                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                'Location': '/gitapi/commit/refs%252Fheads%252F' + branchName + '/file/' + repoName + '/',
+                                'RepositoryPath': '',
+                                'Type': 'Commit',
+                                'fromRef' : fromRef
+
+                            }
                             branchInfo = {
                                 "CloneLocation": "/gitapi/clone/file/" + repoName + "/",
-                                "Commit": jsonCommit,
+                                "Commit": commitsJson,
                                 "CommitLocation": "/gitapi/commit/refs%252Fheads%252F" + branchName + "/file/" + repoName + "/",
                                 "Current": branchesList[branchName]['active'],
                                 "DiffLocation": "/gitapi/diff/" + branchName + "/file/" + repoName + "/",
@@ -410,7 +435,7 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
 
          parents.forEach(function (parent) {
              var entry = {
-                       'Location': '/gitapi/commit/' + parent + '/file/' + repoName,
+                       'Location': '/gitapi/commit/' + parent + '/file/' + repoName + '/',
                        'Name': parent
              };
              entries.push(entry);
@@ -446,12 +471,12 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
                 if (commit.parents.length == 0)
                 {
                     OldPath = '/dev/null';
-                    diffLocation = '/gitapi/diff/' + commit.sha1 + '/file/' + repoName +  file;
+                    diffLocation = '/gitapi/diff/' + commit.sha1 + '/file/' + repoName+ '/' +  file;
                 }
                 else
                 {
                     OldPath = file;
-                    diffLocation = '/gitapi/diff/' + commit.parents[0] + '..' + commit.sha1 + '/file/' + repoName + file;
+                    diffLocation = '/gitapi/diff/' + commit.parents[0] + '..' + commit.sha1 + '/file/' + repoName + '/' + file;
 
                 }
                 var changeType;
@@ -535,67 +560,56 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
             else
             {
                 commit.branches = branches
-                //TODO
                 
                 git.gitTagCommand.getTagNames(repoPath, function(err, tags) {
-                    var selectedTags = [];
-                    console.log("!!!");
-                    console.log(tags);
-                    
-                    tags.forEach(function(tag) {
-                        if (tag['commit_SHA_1'] === commit.sha1)
+                        if (err)
                         {
-                            selectedTags.push(tag);
+                            callback(err, null);
                         }
-                    });
-                    
-                    commit.tags = selectedTags;
+                        else
+                        {
+                            var selectedTags = [];
+                            
+                            tags.forEach(function(tag) {
+                                if (tag['commit_SHA_1'] === commit.sha1)
+                                {
+                                    selectedTags.push(tag);
+                                }
+                            });
+                            
+                            commit.tags = selectedTags;
 
-                    //callback(null, commits[i]);
-                    
-                   
-                    // https://github.com/kyloel/clone/
-                    if (commit.parents.length === 0)
-                    {
-                        git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
-                            if (err)
+                            if (commit.parents.length === 0)
                             {
-                                throw err;
-                                callback(err, null);
+                                git.gitDiffCommand.getDiffCommit(repoPath, commit.sha1, function(err, diffs) {
+                                    if (err)
+                                    {
+                                        callback(err, null);
+                                    }
+                                    else
+                                    {
+                                        commit.diffs = diffs;
+                                        callback(null, commit);
+                                    }
+                                }, null);
                             }
                             else
                             {
-                                commit.diffs = diffs;
-                                callback(null, commit);
+                                //TODO, multiple parents
+                                git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
+                                    if (err)
+                                    {
+                                        callback(err, null);
+                                    }
+                                    else
+                                    {
+                                        commit.diffs = diffs;
+                                        callback(null, commit);
+                                    }
+                                }, null);
                             }
-                        }, null);
-                    }
-                    else
-                    {
-                        //TODO, multiple parents
-                        git.gitDiffCommand.getDiffCommitCommit(repoPath, commit.parents[0], commit.sha1, function(err, diffs) {
-                            if (err)
-                            {
-                                console.log(repoPath);
-                                throw err;
-                                callback(err, null);
-                            }
-                            else
-                            {
-                                commit.diffs = diffs;
-                                callback(null, commit);
-                            }
-                        }, null);
-                    }
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
+                        }
+
                     
                 });
                 
@@ -623,13 +637,13 @@ function commitsToJson(repoPath, repoName, commits, callback)
                             'AuthorImage': 'http://www.gravatar.com/avatar/dafb7cc636f83695c09974c92cf794fc?d=mm',
                             'AuthorName': commit.author.author,
                             'Branches' : getBranches(commit.branches),
-                            'CloneLocation': '/gitapi/clone/file/' + repoName,
+                            'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
                             'CommitterEmail': commit.committer.authorMail,
                             'CommitterName': commit.committer.author,
-                            'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName,
+                            'DiffLocation': '/gitapi/diff/' + commit.sha1 + '/file/' + repoName + '/',
                             'Diffs' : getDiffs(repoName, commit),
 
-                            'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName,
+                            'Location': '/gitapi/commit/' + commit.sha1 + '/file/' + repoName + '/',
                             'Message': commit.description,
                             'Name': commit.sha1,
                             'Parents': parents,
@@ -640,29 +654,7 @@ function commitsToJson(repoPath, repoName, commits, callback)
                     entries.push(entry);
                 });
 
-
-                var json = /*JSON.stringify( */{    'Children' : entries, 
-                                                'CloneLocation': '/gitapi/clone/file/' + repoName,
-                                                'Location': "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
-                                                'RepositoryPath': '',
-                                                'Type': 'Commit',
-                                                "toRef": {
-                                                        "CloneLocation": "/gitapi/clone/file/" + repoName,
-                                                        "CommitLocation": "/gitapi/commit/refs%252Fheads%252Fmaster/file/msabat/test/",
-                                                        "Current": true,
-                                                        "DiffLocation": "/gitapi/diff/master/file/msabat/test/",
-                                                        "FullName": "refs/heads/master",
-                                                        "HeadLocation": "/gitapi/commit/HEAD/file/msabat/test/",
-                                                        "LocalTimeStamp": 1365600727000,
-                                                        "Location": "/gitapi/branch/master/file/" + repoName,
-                                                        "Name": "master",
-                                                        "RemoteLocation": [],
-                                                        "Type": "Branch"
-                                                    }
-                                            
-                                            } 
-                
-                callback(null, json);
+                callback(null, entries);
             }
             
             
@@ -681,15 +673,38 @@ function getCommit(res, rest, dataJson, workspaceDir) {
 
 
 
-    function sendResponse(commits)
+    function sendBranchCommits(commits, branchName) //full branch name, like refs%252Fheads%252Fmaster or HEAD
     {
-        commitsToJson(repoPath, repoName, commits, function(err, json) {
+        commitsToJson(repoPath, repoName, commits, function(err, jsonCommits) {
             if (err)
             {
                 write(500, res, 'Cannot get repostory list');
             }
             else
             {
+                var temp = branchName.split('%252F');
+                var shortBranchName = temp[temp.length - 1];
+
+                var json = {
+                                'Children' : jsonCommits,
+                                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                'Location': '/gitapi/commit/' + branchName + '/file/' + repoName + '/',
+                                'RepositoryPath': '',
+                                'Type': 'Commit',
+                                        "toRef": {
+                                                'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                                'CommitLocation': '/gitapi/commit/' + branchName + '/file/' + repoName + '/',
+                                                "Current": true, //TODO
+                                                'DiffLocation': '/gitapi/diff/' + shortBranchName + '/file/' +  repoName + '/',
+                                                'FullName': decodeURIComponent(decodeURIComponent(branchName)),
+                                                'HeadLocation': '/gitapi/commit/HEAD/file/' + repoName + '/',
+                                                "LocalTimeStamp": 1365600727000, //TODO
+                                                'Location': '/gitapi/branch/' + shortBranchName + '/file/' + repoName + '/',
+                                                'Name': shortBranchName,
+                                                "RemoteLocation": [], //TODO
+                                                'Type': 'Branch'
+                                            }
+                            }
                 write(200, res, null, JSON.stringify(json));
             }
         });
@@ -707,7 +722,6 @@ function getCommit(res, rest, dataJson, workspaceDir) {
 
     var restWords = rest.split("/");
 
-
     var refsPrefix = 'refs%252Fheads%252F';
 
     if (restWords[1] === '_')
@@ -724,33 +738,31 @@ function getCommit(res, rest, dataJson, workspaceDir) {
         git.gitCommitCommand.getHeadCommits(path.join(workspaceDir, repo), function(err, commits) {
             if (err)
             {
-                write(500, res, 'Cannot get commit list');
+                write(500, res, err);
             }
             else
             {
-                //TODO sort by timestamp
-                sendResponse(commits);
+                sendBranchCommits(commits,'HEAD');
             }
         });
     }
     else if (restWords[1].substr(0, refsPrefix.length) === refsPrefix) // refs heads
     {
 
-        
         branchName = restWords[1].substr(refsPrefix.length);
+
         git.gitCommitCommand.geBranchCommitsByName(path.join(workspaceDir, repo), branchName, function(err, commits) {
             if (err)
             {
-                write(500, res, 'Cannot get commit list');
+                write(500, res, err);
             }
             else
             {
-                //TODO sort by timestamp
-                sendResponse(commits);
+                sendBranchCommits(commits, restWords[1]);
             }
         });
     }
-    else
+    else // commit/sha1/file/repoName/
     {
         var sha1 = restWords[1];
         
@@ -764,7 +776,25 @@ function getCommit(res, rest, dataJson, workspaceDir) {
                 }
                 else
                 {
-                    sendResponse([commit]);
+                    //sendResponse([commit]);
+                    commitsToJson(repoPath, repoName, [commit], function(err, jsonCommits) {
+                        if (err)
+                        {
+                            write(500, res, err);
+                        }
+                        else
+                        {
+                            var json = {
+                                            'Children' : jsonCommits,
+                                            'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
+                                            'Location': '/gitapi/commit/file/' + repoName + '/',
+                                            'NextLocation': '/gitapi/commit/file/' + repoName + '/',
+                                            'RepositoryPath': '',
+                                            'Type': 'Commit'
+                                        }
+                            write(200, res, null, JSON.stringify(json));
+                        }
+                    });
                 }
             });
         }
@@ -870,21 +900,20 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     var file = splittedRest[4];
+    
+    var req = rest.split('/');
 
+    var fileRelativeName = '';
+    for(var i = 4; i < req.length; ++i) {
+        fileRelativeName = path.join(fileRelativeName, decodeURIComponent(req[i]));   
+    }
+    file = fileRelativeName;
+    //console.log(file);
     if (splittedRest[1] === 'Default') //TODO: test when status is done
     {
         // Getting a diff between working tree and index 
         if (lastReqPath.query === uris)
         {
-                /*
-    Base: "/gitapi/index/file/msabat/test/anotherFile.txt"
-    CloneLocation: "/gitapi/clone/file/msabat/test/"
-    Location: "/gitapi/diff/Default/file/msabat/test/anotherFile.txt"
-    New: "/file/msabat/test/anotherFile.txt"
-    Old: "/gitapi/index/file/msabat/test/anotherFile.txt"
-    Type: "Diff"
-                */
-                console.log('woot');
                 var json = JSON.stringify( {    
                                                 'Base': '/gitapi/index/file/' + repoName + '/' + file,
                                                 'CloneLocation': '/gitapi/clone/file/' + repoName + '/',
@@ -897,28 +926,21 @@ function getDiff(res, rest, dataJson, workspaceDir) {
         }
         else if (lastReqPath.query === 'parts=diff')
         {
-            console.log('woot');
             git.gitDiffCommand.getDiffWorkingTreeAndIndex(repoPath, function(err, diffs) {
-                console.log('huuuh?');
                 if (err)
                 {
                     write(500, res, 'Cannot get diff');
                 }
                 else
                 {
-                    console.log('file ' + file);
                     var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
-                    //write(200, res, null, temp);
-                    write(200, res, null, ''); //TODO why does this work?!
+                    write(200, res, null, temp);
                 }
             }, file);
         }
     }
     else if (splittedRest[1].length === 40) // 
     {
-        console.log('lmao');
-        console.log(file);
-        console.log(splittedRest);
         var sha1 = splittedRest[1];
         if (lastReqPath.query === uris)
         {
@@ -958,7 +980,6 @@ function getDiff(res, rest, dataJson, workspaceDir) {
     }
     else
     {
-        console.log('lma2o');
         var sha1 = splittedRest[1].split('..');
         var newSha1 = sha1[1];
         var oldSha1 = sha1[0];
@@ -998,23 +1019,24 @@ function getIndex(res, rest, dataJson, workspaceDir) {
     var splittedRest = rest.split('/');
 // /gitapi/index/file/re/12321.txt
     var repoName = splittedRest[2];
-    var file = splittedRest[3];
+    var req = decodeURIComponent(rest).split('/');
+    var file = '';
+    for(var i = 3; i < req.length; ++i) {
+        file = path.join(file, decodeURIComponent(req[i]));
+    }
+    
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    console.log('---------------------');
+
     //file = path.join(path.dirname(repoPath), 
     file = path.join(workspaceDir, repoName, file);
-        console.log(repoPath);
-    console.log(file);
 	git.gitAddCommand.getFileContent(file, repoPath, function(content, err) { //TODO in gitAdd args should be reversed
         if (err)
         {
-            
+            write(500, res, err);
         }
         else
         {
-            console.log(err);
-            console.log(content);
             write(200, res, null, content['Content']);
         }
 
@@ -1030,27 +1052,31 @@ function getRemotes(pathToRepo, repoName, callback)
             if (err) {
                 callback(err, null);
             }
-            var remotesNamesToResponse = new Array();
-            if (err)
-            {
-                callback(err, null);
-                
-            }
             else
             {
-                remotes.forEach(function(remote) {
-                    remotesNamesToResponse.push(
-                        {
-                            'CloneLocation': '/gitapi/clone/file/' + remote['name'],
-                            'GitUrl': remote['url'],
-                            'Location': '/gitapi/remote/' + remote['name'] + '/file/' + repoName + '/',
-                            'Name': remote['name'],
-                            'Type' : 'Remote'
-                        }
-                    );
-                });
-                callback(err, remotesNamesToResponse);
+                var remotesNamesToResponse = new Array();
+                if (err)
+                {
+                    callback(err, null);
+                    
+                }
+                else
+                {
+                    remotes.forEach(function(remote) {
+                        remotesNamesToResponse.push(
+                            {
+                                'CloneLocation': '/gitapi/clone/file/' + remote['name'],
+                                'GitUrl': remote['url'],
+                                'Location': '/gitapi/remote/' + remote['name'] + '/file/' + repoName + '/',
+                                'Name': remote['name'],
+                                'Type' : 'Remote'
+                            }
+                        );
+                    });
+                    callback(err, remotesNamesToResponse);
+                }
             }
+
         });   
 }
 
@@ -1111,7 +1137,6 @@ function getStatus(res, rest, dataJson, workspaceDir) {
     var repoPath = path.join(workspaceDir, repo);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
         if(err) {
-            console.log(err);
             write(500, res, 'Cannot get repostory status');
         } else {
             var entry = {
@@ -1146,12 +1171,14 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                     entry[key].push(val);
                 }
             }
+            /*
             console.log(result.removed);
             console.log(result.added);
             console.log(result.modified);
             console.log(result.changed);
             console.log(result.missing);
             console.log(result.untracked);
+            */
             helperFunction(result.removed, 'Removed');
             helperFunction(result.added, 'Added');
             helperFunction(result.modified, 'Modified');
@@ -1222,24 +1249,24 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 // TODO mk dir orionode/.workspace !!!
 function postClone(res, rest, dataJson, workspaceDir) {
     //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
-    console.log(rest);
-    console.log(dataJson);
+    //console.log(rest);
+    //console.log(dataJson);
     if (dataJson['GitUrl']) {
         var tmp = decodeURIComponent(dataJson['GitUrl']);
-        console.log(tmp);
+        //console.log(tmp);
         var repoName = ph.basename(tmp);
         //repoName = repoName.slice(0, repoName.length - 4);
         var repoPath = path.join(workspaceDir, repoName);
         var number = 0;
-        console.log(repoName);
+        //console.log(repoName);
         var work = function() {
             git.gitCloneCommand.cloneOverGit(repoPath + ((number === 0) ? ('') : ('-' + number)), dataJson['GitUrl'], function(err) {
                 if (err) {
-                    console.log(err);
+                    //console.log(err);
                     writeError(500, res, 'CloneError');
                     return;
                 }
-                console.log(repoPath);
+                //console.log(repoPath);
                 var response = 
                   
                 {
@@ -1268,18 +1295,15 @@ function postClone(res, rest, dataJson, workspaceDir) {
         
     } else {
         var dir = ph.join(workspaceDir, dataJson['Name']);
-        console.log('dir ' + dir);
         fs.mkdir(dir, function (err) {
             if (err)
             {
-                console.log(err);
                 writeError(500, res, 'Error occured. Cannot create ' + dataJson['Name'] + ' dir');
             }
             else {
                 git.gitInitCommand.init (dir, function(err) {
                     if (err)
                     {
-                        console.log(err);
                         writeError(500, res, 'Error occured. Cannot create .git dir');
                     }
                     else {
@@ -1291,7 +1315,6 @@ function postClone(res, rest, dataJson, workspaceDir) {
                         commitInfo.committerMail = 'admin';
                         git.gitCommitCommand2.emptyCommit(ph.join(dir, '.git'), commitInfo, function(err) {
                             if (err) {
-                                console.log(err);
                                 writeError(500, res, 'Error occured. Cannot make empty commit dir');
                                 return;
                             }
@@ -1410,8 +1433,6 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
             }
                 
             var json = JSON.stringify(responseJson);
-            console.log(json);
-            console.log(res);
             write(200, res, null, json);
         });
     } else {
@@ -1522,7 +1543,7 @@ function postRemote(res, rest, dataJson, workspaceDir) {
     git.gitRemoteCommand.addNewRemote(repoPath, dataJson['Remote'], dataJson['RemoteURI'], null, dataJson['RemoteURI'], null, function(err) {
         if (err)
         {
-            console.log(err);
+            writeError(500, res, err);
         }
         else
         {
