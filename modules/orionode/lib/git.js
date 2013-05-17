@@ -1449,6 +1449,7 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
             console.log(splitRest.length);
             if (splitRest[4].length > 0) {        // commit/HEAD/file/xx/ splitRest[4] = '' 
                 //WARNING I COULDN'T FIND commit single file in orion web interface, it's not tested
+                //this part wasn't tested and my contain some errors
                 for(var i = 4; i < splitRest.length; ++i) {
                     fileRelativeName = path.join(fileRelativeName, splitRest[i]);   
                 }
