@@ -969,7 +969,7 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                         }
                         else
                         {
-                            console.log(file);
+                            //console.log(file);
                             var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
                             write(200, res, null, temp);
                         }
@@ -1132,7 +1132,7 @@ function getRemote(res, rest, dataJson, workspaceDir) {
 
 function getStatus(res, rest, dataJson, workspaceDir) {
     var repoName = path.basename(decodeURIComponent(rest));
-    console.log('reponame ' + repoName);
+    //console.log('reponame ' + repoName);
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
@@ -1357,7 +1357,7 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
 {
 "Message" : "fixing bug 349827" 
 } */ 
-    console.log(rest)
+    //console.log(rest)
     var splitRest = rest.split('/');
     var repoName = decodeURIComponent(splitRest[3]);
     var repoPath = path.join(workspaceDir, repoName, '.git');
@@ -1446,7 +1446,7 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
             git.gitCommitCommand2.gitCommitAmend(repoPath, commitInfo, afterCommit);   
         } else {
             var fileRelativeName = '';
-            console.log(splitRest.length);
+            //console.log(splitRest.length);
             if (splitRest[4].length > 0) {        // commit/HEAD/file/xx/ splitRest[4] = '' 
                 //WARNING I COULDN'T FIND commit single file in orion web interface, it's not tested
                 for(var i = 4; i < splitRest.length; ++i) {
