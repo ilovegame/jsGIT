@@ -1501,14 +1501,15 @@ function postIndex(res, rest, dataJson, workspaceDir) {
         fileRelativeName = path.join(fileRelativeName, req[i]);   
     }
     if (dataJson['Reset']) {
-
         git.gitAddCommand.removeAllFiles(repoPath, function(err) {
             if (err) {
                 writeError(500, res, err);
                 return;
             }
-            write(200, res, null, '');
-            return;
+            fs.unlink(ph.join(repoPath, 'MERGE_MSG'), function(err) {
+                write(200, res, null, '');
+                return;
+            });
         });
     } else if (Object.prototype.toString.call(dataJson['Path']) === '[object Array]') {
         var filesPath = new Array();
@@ -1691,7 +1692,6 @@ function putIndex(res, rest, dataJson, workspaceDir) {
     var repoName = req[2]; //  index/file/REPONAME/FILENAME
     var repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
-    
     if(dataJson) {
         if ('Path' in dataJson) {
             for(var i = 0; i < dataJson['Path'].length; ++i) {
@@ -1721,19 +1721,6 @@ function putIndex(res, rest, dataJson, workspaceDir) {
         });
     }
     
-    /* 
-     * 
-     * robimy status
-     * albo usuwamy z indexu -> jesli missing
-     * albo robimy addFile
-     * 
-     * 
-     * unstage:
-     * albo robimy to co lukasz
-     * albo jestli jest removed to przywracamy plik
-     * robimy gitaddfile
-     * usuwamy pliczek
-     */
 }
 
 function putRemote(res, rest, dataJson, workspaceDir) {
