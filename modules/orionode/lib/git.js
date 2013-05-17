@@ -1574,6 +1574,19 @@ function putClone(res, rest, dataJson, workspaceDir) {
     var repoName = rest.split('/');
     repoName = repoName[repoName.length - 2];
     var pathToRepo = workspaceDir + '/' + repoName + '/.git';
+    
+    var workCheckOut = function() {
+        git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
+                if (err) {
+                writeError(500, res, err);
+                return;
+            }
+            fs.unlink(ph.join(pathToRepo, 'MERGE_MSG'), function(err) {
+                write(200, res, null, '');
+            });   
+        });  
+    };
+    
     if (dataJson['Path']) {
         var pending = dataJson['Path'].length;
         for (var i = 0; i < dataJson['Path'].length; ++i) {
@@ -1589,25 +1602,40 @@ function putClone(res, rest, dataJson, workspaceDir) {
                 });   
             }
             if (dataJson['RemoveUntracked'])  {
-                var index = i;
-                fs.unlink(ph.join(workspaceDir,repoName,dataJson['Path'][i]), function(err) {
-                    work(index);
-                });
+                var work2 = function(index) {
+                    fs.unlink(ph.join(workspaceDir,repoName,dataJson['Path'][i]), function(err) {
+                        work(index);
+                    });
+                }
+                work2(i); 
             } else {
                 work(i);   
             }
             
         }
     } else if (dataJson['Tag']) {
-        
-    } else {
-        git.gitCheckoutCommand.gitCheckout(dataJson['Branch'], pathToRepo, function(err) {
+        /*
+         * WARNING
+         * when it was implemented you weren't able to click submit tag checkout
+         * this code is not tested  and might contain some errors
+         */
+        /*
+        git.gitTagCommand.getTagNames(pathToRepo, function(err, tags) {
             if (err) {
                 writeError(500, res, err);
                 return;
             }
-            write(200, res, null, '');
-        });
+            var indexOfTag = tag.indexOf(dataJson['Tag']);
+            if (indexOfTag === -1) {
+                writeError(500, res, err);
+                return;
+            } 
+            refsManager.createBranch(dataJson['Branch'], tags[indexOfTag]['commit_SHA_1'], function(err) {
+                workCheckOut();
+            });
+        });*/
+    } else {
+        workCheckOut();
     }	
 }
 
