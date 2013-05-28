@@ -30,10 +30,6 @@ var lastReqPath = null;
  
 function doJob(handler, rest, req, res, workspaceDir) {
 	//TODO handle invalid requests
-	//console.log(handler);
-    //console.log(res);
-    //console.log('doJob:');
-    //console.log(rest);
 	var methodName = rest[0] === '/' ? rest.split('/')[1] : rest.split('/')[0];
 	var method = handler[methodName];
 	var queryData = "";
@@ -52,10 +48,6 @@ function doJob(handler, rest, req, res, workspaceDir) {
 }
 
 module.exports = function(options) {
-	//console.log("OPT: " );
-    //console.log(options);
-	//console.log("OPT: ");
-    //console.log(opt);
     
 	var fileRoot = options.root;
 	var workspaceDir = options.workspaceDir;
@@ -447,21 +439,18 @@ function tagsToJson(tags, repoName) //sha1 - tagged commit sha1
      function getBranches(branches)
      {
          var entries = [ ];
-         //console.log(parents);{"FullName": "refs/heads/dev"},
          branches.forEach(function (branch) {
              var entry = {
                        'FullName': 'refs/heads/' + branch
              };
              entries.push(entry);
          });
-         //console.log(entries);
          return entries;
      }
      
      function getDiffs(repoName, commit)
      {
          var entries = [ ];
-         //console.log(parents);{"FullName": "refs/heads/dev"},
             for (var file in commit.diffs){
                 var diff = commit.diffs[file];
                 var OldPath;
@@ -630,7 +619,6 @@ function commitsToJson(repoPath, repoName, commits, callback)
             {
                 var entries = [ ];
                 extendedCommits.forEach(function (commit) {
-                    //console.log(parseInt(commit.author.timestamp));
                     var parents = getParents(repoName, commit.parents);
                     var entry =     {
                             'AuthorEmail': commit.author.authorMail,
@@ -908,7 +896,6 @@ function getDiff(res, rest, dataJson, workspaceDir) {
         fileRelativeName = path.join(fileRelativeName, decodeURIComponent(req[i]));   
     }
     file = fileRelativeName;
-    //console.log(file);
     if (splittedRest[1] === 'Default') //TODO: test when status is done
     {
         // Getting a diff between working tree and index 
@@ -969,7 +956,6 @@ function getDiff(res, rest, dataJson, workspaceDir) {
                         }
                         else
                         {
-                            //console.log(file);
                             var temp = git.gitDiffCommand.diffToString(file,file,diffs[file]);
                             write(200, res, null, temp);
                         }
@@ -1132,7 +1118,6 @@ function getRemote(res, rest, dataJson, workspaceDir) {
 
 function getStatus(res, rest, dataJson, workspaceDir) {
     var repoName = path.basename(decodeURIComponent(rest));
-    //console.log('reponame ' + repoName);
     repo = path.join(repoName, '.git');
     var repoPath = path.join(workspaceDir, repo);
     git.gitStatusCommand.gitStatus(repoPath, function(err, result, treeInfo, graph) {
@@ -1171,14 +1156,6 @@ function getStatus(res, rest, dataJson, workspaceDir) {
                     entry[key].push(val);
                 }
             }
-            /*
-            console.log(result.removed);
-            console.log(result.added);
-            console.log(result.modified);
-            console.log(result.changed);
-            console.log(result.missing);
-            console.log(result.untracked);
-            */
             helperFunction(result.removed, 'Removed');
             helperFunction(result.added, 'Added');
             helperFunction(result.modified, 'Modified');
@@ -1249,24 +1226,18 @@ function postBranch(res, rest, dataJson, workspaceDir) {
 // TODO mk dir orionode/.workspace !!!
 function postClone(res, rest, dataJson, workspaceDir) {
     //TODO req: {"Name":"repo","Location":"/workspace/orionode"} - workspace or .workspace ?
-    //console.log(rest);
-    //console.log(dataJson);
     if (dataJson['GitUrl']) {
         var tmp = decodeURIComponent(dataJson['GitUrl']);
-        //console.log(tmp);
         var repoName = ph.basename(tmp);
         //repoName = repoName.slice(0, repoName.length - 4);
         var repoPath = path.join(workspaceDir, repoName);
         var number = 0;
-        //console.log(repoName);
         var work = function() {
             git.gitCloneCommand.cloneOverGit(repoPath + ((number === 0) ? ('') : ('-' + number)), dataJson['GitUrl'], function(err) {
                 if (err) {
-                    //console.log(err);
                     writeError(500, res, 'CloneError');
                     return;
                 }
-                //console.log(repoPath);
                 var response = 
                   
                 {
@@ -1332,32 +1303,6 @@ function postClone(res, rest, dataJson, workspaceDir) {
 }
 
 function postCommit(res, rest, dataJson, workspaceDir) {
-//if error occurs 
-
-    /*
-     * WHEN CONFLICT
-     * {
-  "HeadUpdated": true,
-  "Result": "CONFLICTING"
-}
-NOTHING TO DO
-{
-  "HeadUpdated": false,
-  "Result": "OK"
-}
-OK SOMETHING HAS HAPPENED, NO CONFLICTS
-{  
-  "HeadUpdated": true,
-  "Result": "OK"
-}
-
-     */
-    //POST /git/commit/HEAD/file/A/test.txt
-/*
-{
-"Message" : "fixing bug 349827" 
-} */ 
-    //console.log(rest)
     var splitRest = rest.split('/');
     var repoName = decodeURIComponent(splitRest[3]);
     var repoPath = path.join(workspaceDir, repoName, '.git');
@@ -1446,10 +1391,9 @@ OK SOMETHING HAS HAPPENED, NO CONFLICTS
             git.gitCommitCommand2.gitCommitAmend(repoPath, commitInfo, afterCommit);   
         } else {
             var fileRelativeName = '';
-            //console.log(splitRest.length);
             if (splitRest[4].length > 0) {        // commit/HEAD/file/xx/ splitRest[4] = '' 
                 //WARNING I COULDN'T FIND commit single file in orion web interface, it's not tested
-                //this part wasn't tested and my contain some errors
+                //this part wasn't tested and might contain some errors
                 for(var i = 4; i < splitRest.length; ++i) {
                     fileRelativeName = path.join(fileRelativeName, splitRest[i]);   
                 }
@@ -1503,7 +1447,7 @@ function postIndex(res, rest, dataJson, workspaceDir) {
     if (dataJson['Reset']) {
         git.gitAddCommand.removeAllFiles(repoPath, function(err) {
             if (err) {
-                writeError(500, res, err);
+                writgfeError(500, res, err);
                 return;
             }
             fs.unlink(ph.join(repoPath, 'MERGE_MSG'), function(err) {
